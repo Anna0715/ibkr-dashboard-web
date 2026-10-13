@@ -15,7 +15,7 @@ function targetFor(record, workspace, headingText) {
   if (!symbol || !WORKSPACES.includes(workspace) || !/^\d{4}-\d{2}-\d{2}$/.test(record?.date ?? '')) return null;
   const identity = [String(record.id ?? ''), record.date, workspace, symbol, String(headingText)];
   return { id: PREFIX + encodeURIComponent(JSON.stringify(identity)), recordId: String(record.id ?? ''),
-    date: record.date, frequency: record.frequency ?? 'daily', workspace, symbol, headingText: String(headingText) };
+    date: record.date, frequency: record.frequency ?? 'daily', revision: Number(record.revision ?? record.version) || 1, workspace, symbol, headingText: String(headingText) };
 }
 
 /** Attribute string for the existing h3; report text and layout remain unchanged. */
@@ -40,7 +40,7 @@ export function buildStockIndex(records = []) {
       }
     }
   }
-  for (const entries of index.values()) entries.sort((a, b) => b.date.localeCompare(a.date)
+  for (const entries of index.values()) entries.sort((a, b) => b.date.localeCompare(a.date) || b.revision - a.revision
     || PRIORITY.indexOf(a.workspace) - PRIORITY.indexOf(b.workspace) || a.id.localeCompare(b.id));
   return index;
 }
@@ -171,7 +171,7 @@ export function createStockNavigator({ records = [], getFilter, setFilter }) {
     refresh();
     let changed = false;
     if (!elementFor(target)) {
-      try { setFilter({ date: target.date, frequency: 'daily' }); changed = true; }
+      try { setFilter({ date: target.date, frequency: target.frequency === 'weekly' ? 'weekly' : 'daily' }); changed = true; }
       catch { notify('暂时无法切换到该报告，请稍后重试。'); return false; }
       refresh();
     }
@@ -186,7 +186,7 @@ export function createStockNavigator({ records = [], getFilter, setFilter }) {
     heading.focus({ preventScroll: true });
     const reduced = win?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     heading.scrollIntoView?.({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
-    if (announce) notify(`${changed ? '已切换到' : '已定位至'} ${target.date} 日报的 ${symbol} 分析${symbol === 'GOOG' && target.symbol === 'GOOGL' ? '（与 GOOGL 共用发行人分析）' : ''}${changed ? '；日期筛选已更新。' : '；保留当前筛选。'}`);
+    if (announce) notify(`${changed ? '已切换到' : '已定位至'} ${target.date} ${target.frequency === 'weekly' ? '周报' : '日报'}的 ${symbol} 分析${symbol === 'GOOG' && target.symbol === 'GOOGL' ? '（与 GOOGL 共用发行人分析）' : ''}${changed ? '；日期筛选已更新。' : '；保留当前筛选。'}`);
     return true;
   }
   function onClick(event) {

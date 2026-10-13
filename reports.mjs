@@ -1,5 +1,5 @@
-import { renderReportCharts } from './reports-charts.mjs?v=6';
-import { headingAttributes, createStockNavigator } from './report-navigation.mjs?v=6';
+import { renderReportCharts } from './reports-charts.mjs?v=7';
+import { headingAttributes, createStockNavigator } from './report-navigation.mjs?v=7';
 
 const WORKSPACES=['market','portfolio','holdings','analysis','trades','stocks','watchlist'];
 const STATUS_LABELS={NEW:'待处理',REPLACED:'替换状态待核验',CANCELLED:'已取消 · 排除计划',FILLED:'已成交',REJECTED:'已拒绝',EXPIRED:'已到期'};
@@ -31,16 +31,59 @@ const table=(heads,rows,cls='')=>`<div class="table-scroll ${cls}" tabindex="0" 
 const paragraphs=values=>`<div class="report-body">${(values??[]).map(value=>`<p>${inline(value)}</p>`).join('')}</div>`;
 
 export function mondayOf(date){const d=new Date(date+'T00:00:00Z');if(!Number.isFinite(d.getTime()))return null;d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));return d.toISOString().slice(0,10);}
-export function selectRecords(records,{date='all',frequency='all'}={}){return (records??[]).filter(record=>(frequency==='all'||record.frequency===frequency)&&(date==='all'||record.date===date)).sort((a,b)=>b.date.localeCompare(a.date));}
+const calendarDate=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const date=new Date(value+'T00:00:00Z');return Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===value;};
+const reportRevision=record=>[record.revision,record.version,Number(String(record.id??'').match(/-v(\d+)$/)?.[1])].find(value=>Number.isSafeInteger(value)&&value>=1)??0;
+const newestReport=(a,b)=>b.date.localeCompare(a.date)||reportRevision(b)-reportRevision(a);
+export function reportPeriod(record){
+  const start=record.periodStart||record.date;
+  if(!calendarDate(start))return null;
+  const end=record.periodEnd||record.weekEnd||new Date(new Date(start+'T00:00:00Z').getTime()+6*86400000).toISOString().slice(0,10);
+  return calendarDate(end)&&end>=start?{start,end}:null;
+}
+export function selectRecords(records,{date='all',frequency='all'}={}){return (records??[]).filter(record=>{
+  if(frequency!=='all'&&record.frequency!==frequency)return false;
+  if(date==='all')return true;
+  if(!calendarDate(date))return false;
+  if(record.frequency!=='weekly')return record.date===date;
+  const period=reportPeriod(record);return !!period&&date>=period.start&&date<=period.end;
+}).sort(newestReport);}
 export function recordsForWorkspace(records,workspace,{date='all'}={}){
   if(date!=='all'||!['analysis','trades','stocks','watchlist'].includes(workspace))return records;
   const priority=record=>record.kind==='daily-report'?0:record.kind==='account-snapshot'?1:2;
-  return [...records].sort((a,b)=>priority(a)-priority(b)||b.date.localeCompare(a.date));
+  return [...records].sort((a,b)=>priority(a)-priority(b)||newestReport(a,b));
+}
+/** Trading dates are explicit upstream calendar declarations, never inferred here. */
+export function weeklyCoverage(record,records=record.dailyRecords??[]){
+  const period=reportPeriod(record);
+  const daily=(records??[]).filter(day=>day.frequency==='daily'&&calendarDate(day.date)&&period&&day.date>=period.start&&day.date<=period.end).filter((day,index,array)=>array.findIndex(row=>row.id===day.id)===index).sort((a,b)=>a.date.localeCompare(b.date)||reportRevision(b)-reportRevision(a));
+  const dailyDates=unique(daily.map(day=>day.date)).sort();
+  const fullDates=unique(daily.filter(day=>day.kind==='daily-report'&&day.completeness==='complete').map(day=>day.date)).sort();
+  const declarations=[record,...daily].filter(day=>Object.hasOwn(day,'tradingDates'));
+  const validDeclaration=day=>Array.isArray(day.tradingDates)&&day.tradingDates.length>0&&day.tradingDatesVerified!==false&&new Set(day.tradingDates).size===day.tradingDates.length&&day.tradingDates.every(date=>calendarDate(date)&&period&&date>=period.start&&date<=period.end);
+  const verified=declarations.length>0&&declarations.every(validDeclaration)&&declarations.every(day=>[...day.tradingDates].sort().join(',')===[...declarations[0].tradingDates].sort().join(','));
+  const tradingDates=verified?[...declarations[0].tradingDates].sort():[];
+  const fullDailyDates=verified?fullDates.filter(date=>tradingDates.includes(date)):fullDates;
+  const missingDates=verified?tradingDates.filter(date=>!fullDailyDates.includes(date)):[];
+  return {date:period?.start??record.date,weekEnd:period?.end??record.weekEnd,periodStart:period?.start,periodEnd:period?.end,dailyRecords:daily,dailyDates,fullDailyDates,fullDailyReportCount:fullDailyDates.length,tradingDates,tradingDatesVerified:verified,missingDates,missingArchiveDates:verified?tradingDates.filter(date=>!dailyDates.includes(date)):[],sourceRecordIds:daily.map(day=>day.id),completeness:verified&&!missingDates.length?'complete':'partial'};
 }
 export function makeWeeklySummaries(records){
   const groups=new Map();
-  for(const record of records??[]){if(record.frequency!=='daily'||!record.date)continue;const key=mondayOf(record.date);if(!key)continue;const rows=groups.get(key)??[];rows.push(record);groups.set(key,rows);}
-  return [...groups].map(([start,daily])=>{const end=new Date(start+'T00:00:00Z');end.setUTCDate(end.getUTCDate()+6);const dates=unique(daily.map(r=>r.date)).sort();const fullReports=daily.filter(r=>r.kind==='daily-report'&&r.completeness==='complete');const missingDates=Array.from({length:7},(_,i)=>{const day=new Date(start+'T00:00:00Z');day.setUTCDate(day.getUTCDate()+i);return day.toISOString().slice(0,10);}).filter(date=>!dates.includes(date));return {id:'weekly-'+start,date:start,weekEnd:end.toISOString().slice(0,10),frequency:'weekly',kind:'weekly-summary',title:'一周归档总结',completeness:missingDates.length||fullReports.length<7?'partial':'complete',dailyRecords:daily.sort((a,b)=>a.date.localeCompare(b.date)),dailyDates:dates,fullDailyReportCount:fullReports.length,missingDates,sourceRecordIds:daily.map(r=>r.id)};});
+  for(const record of records??[]){if(record.frequency!=='daily'||!calendarDate(record.date))continue;const key=mondayOf(record.date);const rows=groups.get(key)??[];rows.push(record);groups.set(key,rows);}
+  return [...groups].map(([start,daily])=>{const record={id:'weekly-'+start,date:start,frequency:'weekly',kind:'weekly-summary',title:'一周归档总结'};return {...record,...weeklyCoverage(record,daily)};});
+}
+export function collectReportRecords(records){
+  const saved=(records??[]).filter((record,index,array)=>array.findIndex(row=>row.id===record.id)===index);
+  const weekly=saved.filter(record=>record.frequency==='weekly');
+  const enriched=saved.map(record=>{
+    if(record.frequency!=='weekly')return record;
+    const period=reportPeriod(record),daily=saved.filter(day=>day.frequency==='daily'&&period&&day.date>=period.start&&day.date<=period.end);
+    const coverage=weeklyCoverage(record,daily.length?daily:record.dailyRecords??[]);
+    return {...record,...coverage,...(record.format==='narrative'?{completeness:record.completeness??'partial',...(Object.hasOwn(record,'sourceRecordIds')?{sourceRecordIds:record.sourceRecordIds}:{})}:{})};
+  });
+  const generated=makeWeeklySummaries(saved).filter(record=>!weekly.some(existing=>{
+    const period=reportPeriod(existing);return existing.id===record.id||period&&period.start===record.periodStart&&period.end===record.periodEnd;
+  }));
+  return [...enriched,...generated];
 }
 export function orderSymbol(order){return order.symbol||String(order.primary_description??'').match(/^(?:Buy|Sell)\s+[\d.]+\s+(\S+)/i)?.[1]||null;}
 export function classifyUniverse(snapshot,fixedPool=[]){
@@ -64,7 +107,15 @@ function historicalTrend(record,workspace){
   if(workspace!=='portfolio'||record.id!=='historical-report-2026-10-12')return '';
   return `<figure class="report-history-trend"><figcaption><strong>账户与基准趋势 · 8/31—10/12</strong><span>原日报保存的历史曲线</span></figcaption><div class="report-trend-scroll" tabindex="0" role="region" aria-label="账户与ETF历史趋势图，可水平滚动"><img src="./report-trend-2026-10-12.svg" width="1040" height="320" alt="8月31日至10月12日账户TWR、SPY与QQQ价格回报趋势：期末分别为13.14%、1.44%、4.09%。"></div><div class="report-trend-legend"><span>● 账户 TWR</span><span>● ${stockNavigator?.link('SPY')??'SPY'} 价格回报</span><span>● ${stockNavigator?.link('QQQ')??'QQQ'} 价格回报</span></div><p>账户采用TWR，ETF采用价格回报；原报告的时间范围与数据缺口保留。</p></figure>`;
 }
-function renderNarrative(record,workspace){const section=record.sections?.[workspace];if(!section)return empty(record.title||'历史报告','该日期未保存此栏目内容');const note=record.sourceNote||'来自原会话历史报告；本次未重新核验其中行情、研究结论或交易条件。';const archive=/^\.\/archive\/\d{4}-\d{2}-\d{2}\.html$/.test(record.originalReportPath??'')?`<div class="report-source"><a href="${esc(record.originalReportPath)}" target="_blank" rel="noopener noreferrer">查看完整原日报 · 含历史账户曲线 ↗</a></div>`:'';return panel(section.title||record.title,archive+historicalTrend(record,workspace)+reportCharts(record,workspace)+renderBlocks(section.blocks,record,workspace),record.date+' · 历史报告',note)+(workspace==='market'&&record.appendix?.blocks?.length?panel(record.appendix.title||'数据覆盖、计算与来源',renderBlocks(record.appendix.blocks),record.date+' · 原报告附录',note):'');}
+const archivePath=value=>/^\.\/archive\/\d{4}-\d{2}-\d{2}(?:-v[1-9]\d*|-weekly(?:-v[1-9]\d*)?)?\.html$/.test(value??'');
+function renderNarrative(record,workspace){
+  const section=record.sections?.[workspace];if(!section)return empty(record.title||'报告','该日期未保存此栏目内容');
+  const weekly=record.frequency==='weekly',historical=record.id==='historical-report-2026-10-12';
+  const label=weekly?'周报':historical?'历史日报':'日报',published=record.reportDate||record.date;
+  const note=record.sourceNote||'报告正文与来源时间以本次归档记录为准；数据与研究覆盖缺口见报告说明。';
+  const archive=archivePath(record.originalReportPath)?`<div class="report-source"><a href="${esc(record.originalReportPath)}" target="_blank" rel="noopener noreferrer">查看完整${label} · ${esc(published)} 发布${historical?' · 含历史账户曲线':''} ↗</a></div>`:'';
+  return panel(section.title||record.title,archive+historicalTrend(record,workspace)+reportCharts(record,workspace)+renderBlocks(section.blocks??(section.paragraphs??[]).map(text=>({type:'paragraph',text})),record,workspace),record.date+' · '+label,note)+(workspace==='market'&&record.appendix?.blocks?.length?panel(record.appendix.title||'数据覆盖、计算与来源',renderBlocks(record.appendix.blocks),record.date+' · 报告附录',note):'');
+}
 function sourceFor(record,key){const source=record.sourceTimes?.[key];return source?`${source.label||key} · ${stamp(source.fetchedAt)}${source.asOf?' · 数据日期 '+dateLabel(source.asOf):''}`:`账户快照 · ${stamp(record.sourceCapturedAt)}`;}
 function renderSnapshotAnalysis(record){
   const s=record.snapshot,positions=s.positions??[],total=positions.reduce((n,p)=>n+(p.market_value??0),0),pnl=positions.reduce((n,p)=>n+(p.unrealized_pnl??0),0),summary=s.summary??{};
@@ -95,14 +146,17 @@ function renderSnapshot(record,workspace){
   return panel(section?.title||'本次账户记录',paragraphs(section?.paragraphs??['此栏目本日尚未取得完整数据。']),record.date+' · 账户快照',section?.sourceNote||sourceFor(record,workspace==='market'?'market':'performance'));
 }
 function renderWeekly(record,workspace,includeDailyContent=true){
-  const complete=record.completeness==='complete';
-  const intro=panel('一周归档覆盖',paragraphs([`${record.date} — ${record.weekEnd}：保存 ${record.dailyDates.length} 个日期、${record.dailyRecords.length} 条每日记录；经完整性标记确认的全面日报 ${record.fullDailyReportCount} 份。`,complete?'已覆盖该周全部每日记录。':`本周记录不完整。未保存日期：${record.missingDates.join('、')||'每日记录存在，但全面日报未齐'}。`, '以下按归档日期汇集已有栏目，不把累计 TWR 相加，不把缺少行情的记录补成市场结论。']),complete?'覆盖完整':'不完整周');
-  const rows=record.dailyRecords.map(day=>[esc(day.date),esc(day.title),esc(day.kind==='account-snapshot'?'账户快照':day.kind==='daily-report'?'历史日报':'归档记录'),esc(day.completeness==='complete'?'完整':'部分覆盖'),esc(day.sections?.[workspace]?'已保存此栏目':'此栏目缺失')]);
+  const coverage=weeklyCoverage(record),formal=record.format==='narrative'&&!!record.sections;
+  const status=coverage.tradingDatesVerified?(coverage.completeness==='complete'?'已覆盖已核验交易日清单中的全部全面日报。':`缺少完整日报的交易日：${coverage.missingDates.join('、')}。`):'交易日清单未核验；不把日历七天当作交易日，也不据此宣称本周覆盖完整。';
+  const count=coverage.tradingDatesVerified?`${coverage.fullDailyReportCount}/${coverage.tradingDates.length} 个交易日的完整日报`:`${coverage.fullDailyReportCount} 个日期的完整日报`;
+  const intro=panel('一周归档覆盖',paragraphs([`${coverage.date} — ${coverage.weekEnd}：已取得 ${count}；保存 ${coverage.dailyDates.length} 个日期、${coverage.dailyRecords.length} 条每日记录。`,status,formal?'下方为独立生成的本周综合报告；原始每日记录可从清单按日期查看。':'以下按归档日期汇集已有栏目，不把累计 TWR 相加，不把缺少行情的记录补成市场结论。']),coverage.completeness==='complete'?'交易日覆盖完整':coverage.tradingDatesVerified?'交易日覆盖不完整':'交易日未核验');
+  const rows=coverage.dailyRecords.map(day=>[`<button type="button" class="text-button" data-report-daily-date="${esc(day.date)}" aria-label="查看 ${esc(day.date)} 的日报与账户记录">${esc(day.date)}</button>`,esc(day.title),esc(day.kind==='account-snapshot'?'账户快照':day.kind==='daily-report'?'日报':'归档记录'),esc(day.completeness==='complete'?'完整':'部分覆盖'),esc(day.sections?.[workspace]?'已保存此栏目':'此栏目缺失')]);
   const inventory=panel('本周记录清单',table(['日期','记录','类型','覆盖状态','所选栏目'],rows),'真实归档');
-  const sections=includeDailyContent?record.dailyRecords.map(day=>day.kind==='account-snapshot'?renderSnapshot(day,workspace):renderNarrative(day,workspace)).join(''):paragraphs(['选择顶部“周总结”可展开本周各日完整正文。']);
+  if(formal)return intro+renderNarrative(record,workspace)+inventory;
+  const sections=includeDailyContent?coverage.dailyRecords.map(day=>day.kind==='account-snapshot'?renderSnapshot(day,workspace):renderNarrative(day,workspace)).join(''):paragraphs(['选择顶部“周总结”可展开本周各日完整正文。']);
   return intro+inventory+sections;
 }
-function allRecords(){return [...(payload?.records??[]),...makeWeeklySummaries(payload?.records??[])].filter((record,index,array)=>array.findIndex(r=>r.id===record.id)===index);}
+function allRecords(){return collectReportRecords(payload?.records??[]);}
 function applyFilters(){
   if(!payload)return;
   const matches=selectRecords(allRecords(),state),dailyMatches=matches.filter(r=>r.frequency==='daily');
@@ -127,6 +181,7 @@ async function init(){
   if(payload?.schemaVersion!==1||!Array.isArray(payload.records))throw new Error('报告归档格式无法识别');
   populateFilters();
   window.InvestmentReports={readSnapshot:()=>({schemaVersion:payload.schemaVersion,generatedAt:payload.generatedAt,date:state.date,frequency:state.frequency,recordIds:selectRecords(allRecords(),state).map(r=>r.id)}),setFilter:input=>{if(!input||Object.keys(input).some(k=>!['date','frequency'].includes(k)))throw new Error('筛选参数无效');if(input.frequency&&!['all','daily','weekly'].includes(input.frequency))throw new Error('频率无效');state.date=input.date??state.date;state.frequency=input.frequency??state.frequency;const date=document.getElementById('report-date-filter'),frequency=document.getElementById('report-frequency-filter');if(date)date.value=state.date;if(frequency)frequency.value=state.frequency;applyFilters();}};
+  document.addEventListener('click',event=>{const source=event.target.closest?.('[data-report-daily-date]');if(source&&calendarDate(source.dataset.reportDailyDate))window.InvestmentReports.setFilter({date:source.dataset.reportDailyDate,frequency:'daily'});});
   stockNavigator=createStockNavigator({records:payload.records,getFilter:()=>({...state}),setFilter:input=>window.InvestmentReports.setFilter(input)});
   applyFilters();
 }

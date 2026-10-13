@@ -9,6 +9,7 @@ const plain = value => String(value ?? '').replace(/\*\*|`/g, '').trim();
 const symbolOf = value => plain(value).match(/^([A-Z][A-Z0-9.:-]*)\b/)?.[1] ?? null;
 const sourceDate = record => record.closeDate || record.marketAsOf || record.date || '日期未提供';
 const sourceStamp = record => record.sourceCapturedAt || record.cutoff || '';
+const isHistoricalRecovery = record => /^historical-report(?:-|$)/.test(String(record.id ?? '')) || record.originalClaimsOnly === true || record.coverage?.originalClaimsOnly === true || ['complete', 'partial'].includes(record.contentRecovery);
 const tableOf = (record, workspace, required) => (record.sections?.[workspace]?.blocks ?? []).find(block => block.type === 'table' && required.every(header => block.headers?.includes(header)));
 
 /** Returns a number only when the entire value is numeric; missing text stays null.
@@ -126,41 +127,46 @@ export function snapshotPriorityCounts(record, fixedPool = []) {
 /** Models expose chart inputs and source notes for bounded tests and integration. */
 export function getReportChartData(record, workspace, {fixedPool = []} = {}) {
   if (!record || record.frequency === 'weekly') return [];
-  const historical = record.kind === 'daily-report';
-  const date = historical ? sourceDate(record) : record.date;
+  const daily = record.kind === 'daily-report';
+  const historical = daily && isHistoricalRecovery(record);
+  const date = daily ? sourceDate(record) : record.date;
   const models = [];
-  if (historical && ['market', 'stocks', 'watchlist'].includes(workspace)) {
+  if (daily && ['market', 'stocks', 'watchlist'].includes(workspace)) {
     const rows = extractHistoricalReturns(record, workspace);
-    if (rows.length) models.push({type:'returns', title:workspace === 'market' ? '原日报证券表现' : '本栏目证券表现', date, rows, expected:workspace === 'market' ? (record.sourceCoverage?.security_codes ?? rows.length) : rows.length, notes:['1D、5D、1M来自本日原行情表和量价卡；这是区间收益比较，没有重建时间序列。', '未获取和冲突数据不画成零。GOOG / GOOGL保留各自报价；本图不是板块资金净流量。', '原报告历史数值，本次未重新核验。']});
+    if (rows.length) models.push({type:'returns', title:workspace === 'market' ? historical ? '原日报证券表现' : '日报证券表现' : '本栏目证券表现', date, rows, expected:workspace === 'market' ? (record.sourceCoverage?.security_codes ?? rows.length) : rows.length, notes:['1D、5D、1M来自本日原行情表和量价卡；这是区间收益比较，没有重建时间序列。', '未获取和冲突数据不画成零。GOOG / GOOGL保留各自报价；本图不是板块资金净流量。', ...(historical ? ['原报告历史数值，本次未重新核验。'] : [])]});
   }
   if (['holdings', 'analysis'].includes(workspace)) {
-    const holdings = historical ? historicalHoldings(record) : snapshotHoldings(record);
+    const holdings = daily ? historicalHoldings(record) : snapshotHoldings(record);
     const currencies = [...new Set(holdings.map(row => row.currency))];
     for (const currency of currencies) {
       const rows = holdings.filter(row => row.currency === currency);
-      const basis = historical ? `原${date}收盘重估` : '持仓接口mark快照';
-      const notes = [historical ? `假设原表持仓数量在${date}收盘已存在；与原报告当前mark表分开。` : '采用此记录的持仓接口市值，不与账户摘要净值或较早绩效日期混合。', '占比仅以本表已列正市值持仓为分母，不包括现金、购买力或其他资产。'];
+      const basis = daily ? `${historical ? '原' : ''}${date}收盘重估` : '持仓接口mark快照';
+      const notes = [daily ? historical ? `假设原表持仓数量在${date}收盘已存在；与原报告当前mark表分开。` : '采用本日报持仓表的收盘重估市值；数量时点和重估依据以报告来源说明为准。' : '采用此记录的持仓接口市值，不与账户摘要净值或较早绩效日期混合。', '占比仅以本表已列正市值持仓为分母，不包括现金、购买力或其他资产。'];
       if (sourceStamp(record)) notes.push(`该记录来源时间：${sourceStamp(record)}`);
       models.push({type:'allocation', title:`持仓市值分布 · ${basis}`, date, currency, rows, notes});
-      models.push({type:'pnl', title:`持仓盈亏 · ${basis}`, date, currency, rows, notes:[historical ? '原表重算浮盈和日损益；不是已实现收益或账户TWR。' : '接口未实现盈亏与daily_pnl原字段分开。daily_pnl会话起点未核验，不能当作所选收盘日的日损益；不把入金、购买力或市值变化当作收益。', `与同一持仓记录对应 · ${currency}`]});
+      models.push({type:'pnl', title:`持仓盈亏 · ${basis}`, date, currency, rows, closeRevaluation:daily, notes:[daily ? historical ? '原表重算浮盈和日损益；不是已实现收益或账户TWR。' : '本日报表内重算浮盈和日损益；不是已实现收益或账户TWR。' : '接口未实现盈亏与daily_pnl原字段分开。daily_pnl会话起点未核验，不能当作所选收盘日的日损益；不把入金、购买力或市值变化当作收益。', `与同一持仓记录对应 · ${currency}`]});
     }
   }
   if (workspace === 'trades') {
     const amounts = extractOrderAmounts(record);
-    if (amounts.rows.length) models.push({type:'orders', title:'逐笔股票限价名义金额', date, rows:amounts.rows, currency:historical ? 'USD' : null, notes:[historical ? '历史原表股数 × 限价；不是已核验的当前剩余数量或实时预算。' : '接口剩余数量 × 限价。订单没有返回独立计价币种，因此保留原计价单位、不换算为USD。', '每条记录独立显示。REPLACED是替换链待核验，不视为已确认独立有效；不计算合计资金压力。', `${amounts.options} 条期权记录保留于原表，不套用合约乘数或推算接货额；${amounts.excludedTerminal} 条终止记录排除；${amounts.unknown} 条字段不足。`]});
+    if (amounts.rows.length) models.push({type:'orders', title:'逐笔股票限价名义金额', date, rows:amounts.rows, currency:daily ? 'USD' : null, notes:[daily ? historical ? '历史原表股数 × 限价；不是已核验的当前剩余数量或实时预算。' : '本日报表内股数 × 限价；数量时点和订单状态以报告来源说明为准，不等同于实时剩余数量或可合并预算。' : '接口剩余数量 × 限价。订单没有返回独立计价币种，因此保留原计价单位、不换算为USD。', '每条记录独立显示。REPLACED是替换链待核验，不视为已确认独立有效；不计算合计资金压力。', `${amounts.options} 条期权记录保留于原表，不套用合约乘数或推算接货额；${amounts.excludedTerminal} 条终止记录排除；${amounts.unknown} 条字段不足。`]});
   }
-  if (historical && workspace === 'portfolio') {
+  if (daily && workspace === 'portfolio') {
     const table = tableOf(record, 'portfolio', ['表现', '与账户差值']);
     if (table) {
       const valueIndex = table.headers.indexOf('表现');
       const rows = table.rows.map(cells => ({label:plain(cells[0]), value:parseReportNumber(cells[valueIndex], {percent:true})}));
-      if (rows.some(row => finite(row.value))) models.push({type:'bars', title:'原日报同区间账户与基准', date, unit:'percent', rows, notes:[`${table.headers[0]} · 采用原表表现列，未重新计算。`, '账户TWR与ETF价格回报口径不同；此图不是统一含息总回报，也不代表其他日期的新绩效。']});
+      if (rows.some(row => finite(row.value))) models.push({type:'bars', title:historical ? '原日报同区间账户与基准' : '日报同区间账户与基准', date, unit:'percent', rows, notes:[`${table.headers[0]} · 采用原表表现列，未重新计算。`, '账户TWR与ETF价格回报口径不同；此图不是统一含息总回报，也不代表其他日期的新绩效。']});
     }
   }
-  if (!historical && ['watchlist', 'stocks'].includes(workspace)) {
+  if (!daily && ['watchlist', 'stocks'].includes(workspace)) {
     const priority = snapshotPriorityCounts(record, fixedPool);
     const labels = {holding:'持仓', order:'挂单（含待核验）', waiting:'等待买点', watch:'其他关注 / 固定池'};
     models.push({type:'bars', title:'去重后的分析优先级', date, unit:'count', rows:Object.entries(priority.counts).map(([key, value]) => ({label:labels[key], value})), notes:[`本快照共 ${priority.total} 个唯一标的。持仓 → 挂单 → 等待买点 → 其他关注，每个标的仅归一个主栏目。`, '这是覆盖数量，不是风险评分、买入建议或行业分布。']});
+  }
+  if (daily && !historical) for (const model of models) {
+    model.notes.push('数值来自该日报保存数据；核验状态、数据时点与缺口以报告来源说明为准。');
+    if (record.sourceNote) model.notes.push(record.sourceNote);
   }
   return models;
 }
@@ -228,7 +234,7 @@ function modelBody(model, symbolLink) {
     const missing = Math.max(0, model.expected - rows.length), conflicts = model.rows.filter(row => row.conflicts.includes(period)).length;
     return `<details class="rc-period"${index === 0 ? ' open' : ''}><summary>${period} · ${rows.length}/${model.expected} 有值 <span>${missing} 缺失${conflicts ? ` · ${conflicts} 冲突` : ''}</span></summary>${bars(rows, {...model, title:`${model.title} · ${period}`, unit:'percent', symbolLink})}</details>`;
   }).join('');
-  if (model.type === 'pnl') return [{key:'pnl', label:model.notes[0].startsWith('原表') ? '收盘重算浮盈' : '接口未实现盈亏'}, {key:'dailyPnl', label:model.notes[0].startsWith('原表') ? '收盘重算日损益' : '快照区间损益 · 起点未核验'}].map(({key, label}, index) => `<details class="rc-period"${index === 0 ? ' open' : ''}><summary>${label}</summary>${bars(model.rows.map(row => ({...row, value:row[key]})), {...model, title:label, symbolLink})}</details>`).join('');
+  if (model.type === 'pnl') return [{key:'pnl', label:model.closeRevaluation ? '收盘重算浮盈' : '接口未实现盈亏'}, {key:'dailyPnl', label:model.closeRevaluation ? '收盘重算日损益' : '快照区间损益 · 起点未核验'}].map(({key, label}, index) => `<details class="rc-period"${index === 0 ? ' open' : ''}><summary>${label}</summary>${bars(model.rows.map(row => ({...row, value:row[key]})), {...model, title:label, symbolLink})}</details>`).join('');
   return bars(model.rows, {...model, symbolLink, signed:model.type !== 'orders' && model.unit !== 'count'});
 }
 
@@ -238,5 +244,7 @@ function modelBody(model, symbolLink) {
 export function renderReportCharts(record, workspace, {symbolLink, fixedPool = []} = {}) {
   const models = getReportChartData(record, workspace, {fixedPool});
   if (!models.length) return '';
-  return `<div class="report-charts">${models.map(model => `<figure class="rc-card"><figcaption><h3>${esc(model.title)}</h3><span>${esc(model.date)}${model.currency ? ` · ${esc(model.currency)}` : ''}${record.kind === 'daily-report' ? ' · 历史原文' : ' · 账户快照'}</span></figcaption>${modelBody(model, symbolLink)}${notes(model.notes)}</figure>`).join('')}</div>`;
+  const daily = record.kind === 'daily-report', historical = daily && isHistoricalRecovery(record);
+  const caption = model => daily && !historical ? `日报来源数据 · 收盘日期 ${sourceDate(record)} · 报告发布日期 ${record.reportDate || record.date || '日期未提供'}${model.currency ? ` · ${model.currency}` : ''}` : `${model.date}${model.currency ? ` · ${model.currency}` : ''}${historical ? ' · 历史原文' : ' · 账户快照'}`;
+  return `<div class="report-charts">${models.map(model => `<figure class="rc-card"><figcaption><h3>${esc(model.title)}</h3><span>${esc(caption(model))}</span></figcaption>${modelBody(model, symbolLink)}${notes(model.notes)}</figure>`).join('')}</div>`;
 }
