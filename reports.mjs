@@ -1,6 +1,9 @@
+import { renderReportCharts } from './reports-charts.mjs?v=6';
+import { headingAttributes, createStockNavigator } from './report-navigation.mjs?v=6';
+
 const WORKSPACES=['market','portfolio','holdings','analysis','trades','stocks','watchlist'];
 const STATUS_LABELS={NEW:'待处理',REPLACED:'替换状态待核验',CANCELLED:'已取消 · 排除计划',FILLED:'已成交',REJECTED:'已拒绝',EXPIRED:'已到期'};
-let payload=null;
+let payload=null,stockNavigator=null;
 const state={date:'all',frequency:'daily'};
 const finite=value=>typeof value==='number'&&Number.isFinite(value);
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -50,19 +53,24 @@ export function classifyUniverse(snapshot,fixedPool=[]){
   return symbols.map(symbol=>{const pool=fixedPool.find(i=>i.symbol===symbol);const memberships=watchlists.filter(w=>(w.instruments??[]).some(i=>(i.symbol||i.contract_description)===symbol)).map(w=>w.name);const category=held.has(symbol)?'holding':ordered.has(symbol)?'order':waiting.has(symbol)?'waiting':'watch';return {symbol,category,memberships,inFixedPool:!!pool,issuerKey:pool?.issuerKey||symbol,identityStatus:pool?.identityStatus||'reported',focus:pool?.focus??false,orderVerificationPending:currentOrders.some(o=>orderSymbol(o)===symbol&&o.order_status==='REPLACED')};}).sort((a,b)=>['holding','order','waiting','watch'].indexOf(a.category)-['holding','order','waiting','watch'].indexOf(b.category)||a.symbol.localeCompare(b.symbol));
 }
 export function selectUniverseCategory(snapshot,fixedPool,category){return classifyUniverse(snapshot,fixedPool).filter(row=>row.category===category);}
-function renderBlocks(blocks){return `<div class="report-body">${(blocks??[]).map(block=>{
-  if(block.type==='heading')return `<h3>${inline(block.text)}</h3>`;
+function renderBlocks(blocks,record,workspace){return `<div class="report-body">${(blocks??[]).map(block=>{
+  if(block.type==='heading')return `<h3${record?headingAttributes(record,workspace,block.text):''}>${inline(block.text)}</h3>`;
   if(block.type==='table')return table(block.headers??[],(block.rows??[]).map(row=>row.map(inline)));
   if(block.type==='list')return `<ul>${(block.items??[]).map(item=>`<li>${inline(item)}</li>`).join('')}</ul>`;
   return `<p>${inline(block.text)}</p>`;
 }).join('')}</div>`;}
-function renderNarrative(record,workspace){const section=record.sections?.[workspace];if(!section)return empty(record.title||'历史报告','该日期未保存此栏目内容');const note=record.sourceNote||'来自原会话历史报告；本次未重新核验其中行情、研究结论或交易条件。';const archive=/^\.\/archive\/\d{4}-\d{2}-\d{2}\.html$/.test(record.originalReportPath??'')?`<div class="report-source"><a href="${esc(record.originalReportPath)}" target="_blank" rel="noopener noreferrer">查看完整原日报 · 含历史账户曲线 ↗</a></div>`:'';return panel(section.title||record.title,archive+renderBlocks(section.blocks),record.date+' · 历史报告',note)+(workspace==='market'&&record.appendix?.blocks?.length?panel(record.appendix.title||'数据覆盖、计算与来源',renderBlocks(record.appendix.blocks),record.date+' · 原报告附录',note):'');}
+const reportCharts=(record,workspace)=>renderReportCharts(record,workspace,{symbolLink:symbol=>stockNavigator?.href(symbol),fixedPool:payload?.fixedPool??[]});
+function historicalTrend(record,workspace){
+  if(workspace!=='portfolio'||record.id!=='historical-report-2026-10-12')return '';
+  return `<figure class="report-history-trend"><figcaption><strong>账户与基准趋势 · 8/31—10/12</strong><span>原日报保存的历史曲线</span></figcaption><div class="report-trend-scroll" tabindex="0" role="region" aria-label="账户与ETF历史趋势图，可水平滚动"><img src="./report-trend-2026-10-12.svg" width="1040" height="320" alt="8月31日至10月12日账户TWR、SPY与QQQ价格回报趋势：期末分别为13.14%、1.44%、4.09%。"></div><div class="report-trend-legend"><span>● 账户 TWR</span><span>● ${stockNavigator?.link('SPY')??'SPY'} 价格回报</span><span>● ${stockNavigator?.link('QQQ')??'QQQ'} 价格回报</span></div><p>账户采用TWR，ETF采用价格回报；原报告的时间范围与数据缺口保留。</p></figure>`;
+}
+function renderNarrative(record,workspace){const section=record.sections?.[workspace];if(!section)return empty(record.title||'历史报告','该日期未保存此栏目内容');const note=record.sourceNote||'来自原会话历史报告；本次未重新核验其中行情、研究结论或交易条件。';const archive=/^\.\/archive\/\d{4}-\d{2}-\d{2}\.html$/.test(record.originalReportPath??'')?`<div class="report-source"><a href="${esc(record.originalReportPath)}" target="_blank" rel="noopener noreferrer">查看完整原日报 · 含历史账户曲线 ↗</a></div>`:'';return panel(section.title||record.title,archive+historicalTrend(record,workspace)+reportCharts(record,workspace)+renderBlocks(section.blocks,record,workspace),record.date+' · 历史报告',note)+(workspace==='market'&&record.appendix?.blocks?.length?panel(record.appendix.title||'数据覆盖、计算与来源',renderBlocks(record.appendix.blocks),record.date+' · 原报告附录',note):'');}
 function sourceFor(record,key){const source=record.sourceTimes?.[key];return source?`${source.label||key} · ${stamp(source.fetchedAt)}${source.asOf?' · 数据日期 '+dateLabel(source.asOf):''}`:`账户快照 · ${stamp(record.sourceCapturedAt)}`;}
 function renderSnapshotAnalysis(record){
   const s=record.snapshot,positions=s.positions??[],total=positions.reduce((n,p)=>n+(p.market_value??0),0),pnl=positions.reduce((n,p)=>n+(p.unrealized_pnl??0),0),summary=s.summary??{};
   const rows=positions.map(p=>{const cost=finite(p.position)&&finite(p.average_price)?p.position*p.average_price:null;const weight=total? p.market_value/total:null;const accountWeight=summary.net_liquidation?p.market_value/summary.net_liquidation:null;return [`<div class="ticker-title">${esc(p.symbol||p.contract_description)}</div><div class="ticker-name">${esc(p.asset_class)} · ${esc(p.currency)}</div>`,esc(p.position),money(p.market_value,p.currency),`<span class="${tone(p.unrealized_pnl)}">${money(p.unrealized_pnl,p.currency)}</span>`,percent(cost?p.unrealized_pnl/cost:null),percent(weight),percent(accountWeight),'<span class="muted">新财报、量价与加减仓条件尚未核验</span>'];});
   const totals=`<section class="overview"><article class="stat-card"><div class="stat-top">明细持仓数量</div><div class="stat-value">${positions.length}</div><div class="stat-detail">所有返回的开放持仓</div></article><article class="stat-card"><div class="stat-top">明细市值合计</div><div class="stat-value money">${money(total)}</div><div class="stat-detail">仅此持仓接口快照</div></article><article class="stat-card"><div class="stat-top">明细未实现盈亏</div><div class="stat-value money ${tone(pnl)}">${money(pnl)}</div><div class="stat-detail">不替代账户 TWR</div></article><article class="stat-card"><div class="stat-top">账户摘要净值</div><div class="stat-value money">${money(summary.net_liquidation)}</div><div class="stat-detail">账户摘要独立来源</div></article></section>`;
-  return totals+panel('持仓结构与研究状态',positions.length?table(['持仓','数量','快照市值','未实现盈亏','持仓浮盈率','股票内权重','摘要净值参考比','本日研究状态'],rows):'<div class="report-empty">本次未取得持仓明细。</div>',record.date,sourceFor(record,'positions'))+panel('估值与研究范围',paragraphs(record.sections?.analysis?.paragraphs??[]),'来源差异',sourceFor(record,'summary'));
+  return totals+panel('持仓结构与研究状态',reportCharts(record,'analysis')+(positions.length?table(['持仓','数量','快照市值','未实现盈亏','持仓浮盈率','股票内权重','摘要净值参考比','本日研究状态'],rows):'<div class="report-empty">本次未取得持仓明细。</div>'),record.date,sourceFor(record,'positions'))+panel('估值与研究范围',paragraphs(record.sections?.analysis?.paragraphs??[]),'来源差异',sourceFor(record,'summary'));
 }
 function renderSnapshotOrders(record){
   const orders=record.snapshot.orders??[];
@@ -80,9 +88,9 @@ function renderUniverse(record,category='waiting'){
 function renderWatchlists(record){const lists=record.snapshot.watchlists??[];return renderUniverse(record,'watch')+panel('全部自选分组',`<div class="report-list">${lists.map(list=>`<div class="report-list-item"><strong>${esc(list.name)} · ${(list.instruments??[]).length} 个工具</strong><p>分组 ID ${esc(list.id)} · ${list.complete?'完整取得':'内容未齐'}</p><div class="report-symbols">${(list.instruments??[]).map(i=>`<span title="${esc(i.contract_id_ex)}">${esc(i.symbol||i.contract_description)}</span>`).join('')}</div></div>`).join('')}</div>`,`${lists.length} 个分组`,sourceFor(record,'watchlists'))+panel('固定观察池',`<div class="report-body"><p>原会话提供的固定池保留为独立研究范围。双重股权代码保留各自工具身份，发行人分析按相同 issuerKey 合并。</p><div class="report-symbols">${(payload.fixedPool??[]).map(item=>`<span>${esc(item.symbol)}${item.identityStatus==='pending'?' · 身份待确认':''}${item.focus?' · 重点':''}</span>`).join('')}</div></div>`,'原会话配置')+panel('覆盖说明',paragraphs(record.sections?.watchlist?.paragraphs??[]),'研究未齐');}
 function renderSnapshot(record,workspace){
   if(workspace==='analysis')return renderSnapshotAnalysis(record);
-  if(workspace==='trades')return renderSnapshotOrders(record);
-  if(workspace==='stocks')return renderUniverse(record,'waiting');
-  if(workspace==='watchlist')return renderWatchlists(record);
+  if(workspace==='trades')return panel('订单状态图解',reportCharts(record,workspace),record.date,sourceFor(record,'orders'))+renderSnapshotOrders(record);
+  if(workspace==='stocks')return panel('研究覆盖图解',reportCharts(record,workspace),record.date,sourceFor(record,'watchlists'))+renderUniverse(record,'waiting');
+  if(workspace==='watchlist')return panel('关注范围图解',reportCharts(record,workspace),record.date,sourceFor(record,'watchlists'))+renderWatchlists(record);
   const section=record.sections?.[workspace];
   return panel(section?.title||'本次账户记录',paragraphs(section?.paragraphs??['此栏目本日尚未取得完整数据。']),record.date+' · 账户快照',section?.sourceNote||sourceFor(record,workspace==='market'?'market':'performance'));
 }
@@ -103,6 +111,7 @@ function applyFilters(){
   document.querySelectorAll('[data-report-current-snapshot]').forEach(node=>{node.hidden=!showCurrentSnapshot;});
   document.querySelectorAll('[data-report-range]').forEach(node=>{node.textContent=state.date==='all'?`全部已存档日期 · ${state.frequency==='weekly'?'每周总结':state.frequency==='daily'?'每日记录':'每日记录与周总结'}`:`${state.date} · ${state.frequency==='weekly'?'每周总结':state.frequency==='daily'?'每日记录':'已存档记录'}`;});
   for(const workspace of WORKSPACES){const mount=document.querySelector(`[data-report-workspace="${workspace}"]`);if(!mount)continue;mount.innerHTML=matches.length?recordsForWorkspace(matches,workspace,state).map(record=>record.frequency==='weekly'?renderWeekly(record,workspace,state.frequency==='weekly'):record.kind==='account-snapshot'?renderSnapshot(record,workspace):renderNarrative(record,workspace)).join(''):empty('所选日期没有报告','没有符合日期与频率的已存档记录');}
+  stockNavigator?.refresh();
   window.dispatchEvent(new CustomEvent('investment-report-filter-change',{detail:{...state,matchingRecords:matches.map(r=>({id:r.id,date:r.date,frequency:r.frequency})),dailyDates:unique(dailyMatches.map(r=>r.date)),showCurrentSnapshot,snapshotDate:snapshot?.date??null}}));
 }
 function populateFilters(){
@@ -116,7 +125,9 @@ async function init(){
   if(!window.InvestmentShell)throw new Error('报告读取入口未就绪');
   payload=await window.InvestmentShell.readSnapshot('./reports.json','报告归档');
   if(payload?.schemaVersion!==1||!Array.isArray(payload.records))throw new Error('报告归档格式无法识别');
-  populateFilters();applyFilters();
+  populateFilters();
   window.InvestmentReports={readSnapshot:()=>({schemaVersion:payload.schemaVersion,generatedAt:payload.generatedAt,date:state.date,frequency:state.frequency,recordIds:selectRecords(allRecords(),state).map(r=>r.id)}),setFilter:input=>{if(!input||Object.keys(input).some(k=>!['date','frequency'].includes(k)))throw new Error('筛选参数无效');if(input.frequency&&!['all','daily','weekly'].includes(input.frequency))throw new Error('频率无效');state.date=input.date??state.date;state.frequency=input.frequency??state.frequency;const date=document.getElementById('report-date-filter'),frequency=document.getElementById('report-frequency-filter');if(date)date.value=state.date;if(frequency)frequency.value=state.frequency;applyFilters();}};
+  stockNavigator=createStockNavigator({records:payload.records,getFilter:()=>({...state}),setFilter:input=>window.InvestmentReports.setFilter(input)});
+  applyFilters();
 }
 if(typeof document!=='undefined')init().catch(error=>{document.querySelectorAll('[data-report-workspace]').forEach(node=>{node.innerHTML=empty('报告暂未加载',error.message);});});
