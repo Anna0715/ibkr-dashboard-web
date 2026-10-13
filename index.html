@@ -11,11 +11,11 @@
   <title>美股投资管理 · IBKR</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23151220'/%3E%3Cpath d='M7 23V17M13 23V12M19 23V16M25 23V7' stroke='%23a78bfa' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="./styles.css?v=4">
-  <link rel="stylesheet" href="./reports.css?v=4">
+  <link rel="stylesheet" href="./reports.css?v=5">
   <script defer src="./shell.js?v=4"></script>
   <script type="module" src="./app.mjs?v=3"></script>
   <script type="module" src="./market.mjs?v=3"></script>
-  <script type="module" src="./reports.mjs?v=4"></script>
+  <script type="module" src="./reports.mjs?v=5"></script>
 </head>
 <body>
 <a class="skip" href="#main">跳至投资工作区</a>
@@ -27,7 +27,7 @@
  <div class="sidebar-bottom"><div class="private-status"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="7" rx="1.5"/><path d="M5.5 7V4a2.5 2.5 0 015 0v3"/></svg>公开快照</div><span>数据快照</span><time id="global-snapshot"></time></div>
 </aside>
 <div class="app-shell">
- <header class="topbar"><div class="breadcrumb">投资管理<span>/</span><strong id="workspace-title">市场总览</strong></div><div class="header-right"><label class="archive-label">报告日期<select id="report-date-filter" aria-label="报告日期"></select></label><select id="report-frequency-filter" aria-label="报告类型"><option value="all">全部报告</option><option value="daily">日报</option><option value="weekly">周总结</option></select><span class="currency-tag">USD</span><button class="plain-button" id="method-button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 9v5M10 5.8v.4"/></svg>数据口径</button><button class="plain-button" id="refresh-button" type="button">刷新</button><span class="profile-avatar" aria-label="个人账户">IB</span></div></header>
+ <header class="topbar"><div class="breadcrumb">投资管理<span>/</span><strong id="workspace-title">市场总览</strong></div><div class="header-right"><label class="archive-label">报告日期<select id="report-date-filter" aria-label="报告日期"></select></label><select id="report-frequency-filter" aria-label="报告类型"><option value="all">全部报告</option><option value="daily" selected>日报</option><option value="weekly">周总结</option></select><span class="currency-tag">USD</span><button class="plain-button" id="method-button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 9v5M10 5.8v.4"/></svg>数据口径</button><button class="plain-button" id="refresh-button" type="button">刷新</button><span class="profile-avatar" aria-label="个人账户">IB</span></div></header>
  <main id="main">
   <div class="mobile-entry"><span>手机访问</span><a href="./" target="_top">打开完整网页 ↗</a></div>
   <div id="load-error" class="load-error" role="alert" hidden></div><div id="market-load-error" class="load-error" role="alert" hidden></div>
