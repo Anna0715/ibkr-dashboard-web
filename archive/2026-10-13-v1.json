@@ -1,0 +1,1296 @@
+{
+  "id": "daily-2026-10-13-v1",
+  "date": "2026-10-13",
+  "frequency": "daily",
+  "format": "narrative",
+  "kind": "daily-report",
+  "type": "daily",
+  "periodStart": "2026-10-13",
+  "periodEnd": "2026-10-13",
+  "reportDate": "2026-10-14",
+  "closeDate": "2026-10-13",
+  "closeTimestamp": "2026-10-13T16:00:00-04:00",
+  "capturedAt": "2026-10-14T08:19:17+08:00",
+  "cutoff": "2026-10-14T08:19:17+08:00",
+  "sourceCapturedAt": "2026-10-14T08:19:17+08:00",
+  "version": 1,
+  "title": "美股收盘与账户决策日报 · 2026-10-13",
+  "completeness": "partial",
+  "sourceNote": "10月14日补跑10月13日美股常规收盘日报。账户与订单为本次IBKR重新读取；行情采用10月13日常规日线。基金真实申赎仅取得截至10月7日的可靠周度数据，不能冒充10月13日当日净流量；全观察池SEC/财报穷尽核验未完成，因此整体标记partial。",
+  "originalReportPath": "./archive/2026-10-13-v1.html",
+  "decisionSummary": "市场处于板块轮动叠加AI硬件风险偏好下降：指数几乎横盘，但半导体继续弱、内部宽度偏差。账户1D TWR约−1.47%，主要持仓拖累来自FN。现金约7,284.90美元，而NEW状态股票买单名义额35,250美元，先做订单预算排序，再考虑新增风险。",
+  "sourceCoverage": {
+    "priority_units_with_fresh_technical_data": 28,
+    "account_positions": 5,
+    "order_records": 14,
+    "watchlists": 13,
+    "other_watch_and_fixed_pool_deep_research": "partial"
+  },
+  "coverage": {
+    "missing": [
+      "10月13日宏观/行业ETF真实当日申赎净流量未取得；最新可靠周度资金流截至10月7日。",
+      "NYSE/Nasdaq官方逐交易所涨跌家数未取得；使用明确口径的5,118只普通股广度和4,740只普通股新高新低作为替代，不冒充官方交易所统计。",
+      "全部其他关注池公司的SEC/财报/分析师事件逐一穷尽核验未完成；持仓、订单和等待买点的价格/技术覆盖优先完成。",
+      "REPLACED订单缺少完整替换链/OCA关系；不把它们直接算成独立有效风险，也不直接当作已撤销。"
+    ],
+    "sections": {
+      "market": {
+        "status": "partial",
+        "evidenceIds": [
+          "market-close",
+          "reuters-wrap",
+          "chip-selloff",
+          "breadth",
+          "breadth2",
+          "fundflow",
+          "bls"
+        ]
+      },
+      "portfolio": {
+        "status": "complete",
+        "evidenceIds": [
+          "ibkr-account"
+        ]
+      },
+      "holdings": {
+        "status": "complete",
+        "evidenceIds": [
+          "ibkr-account",
+          "ibkr-prices"
+        ]
+      },
+      "analysis": {
+        "status": "partial",
+        "evidenceIds": [
+          "ibkr-prices",
+          "ceg",
+          "chip-selloff"
+        ]
+      },
+      "trades": {
+        "status": "partial",
+        "evidenceIds": [
+          "ibkr-account",
+          "ibkr-prices",
+          "qcom"
+        ]
+      },
+      "stocks": {
+        "status": "partial",
+        "evidenceIds": [
+          "ibkr-prices",
+          "asml",
+          "tsmc"
+        ]
+      },
+      "watchlist": {
+        "status": "partial",
+        "evidenceIds": [
+          "ibkr-account",
+          "chip-selloff"
+        ]
+      }
+    }
+  },
+  "evidence": [
+    {
+      "id": "ibkr-account",
+      "source": "Interactive Brokers (IBKR) · account summary/positions/balances/performance/orders/watchlists",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "tool": "IBKR connector"
+    },
+    {
+      "id": "ibkr-prices",
+      "source": "Interactive Brokers (IBKR) · regular-session daily Last bars",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "tool": "IBKR get_price_history"
+    },
+    {
+      "id": "market-close",
+      "source": "Associated Press · How major US stock indexes fared Tuesday",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "url": "https://apnews.com/article/a0a577dfd12f63ee6780a56ab02b55c4"
+    },
+    {
+      "id": "reuters-wrap",
+      "source": "Reuters · World stocks dip on AI spending concerns; Brent settles lower",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "url": "https://www.reuters.com/world/asia-pacific/global-markets-wrapup-1-2026-10-13/"
+    },
+    {
+      "id": "chip-selloff",
+      "source": "Reuters · US chip stocks extend slide as China memory report, AI spending jitters hit sector",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "url": "https://www.reuters.com/world/china/us-chip-stocks-extend-slide-china-memory-report-ai-spending-jitters-hit-sector-2026-10-13/"
+    },
+    {
+      "id": "breadth",
+      "source": "thetrading.tools · New Highs – New Lows",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "url": "https://www.thetrading.tools/new-highs-new-lows"
+    },
+    {
+      "id": "breadth2",
+      "source": "Gainbot · US stock market session brief",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "url": "https://gainbot.ai/brief/2026-10-13"
+    },
+    {
+      "id": "fundflow",
+      "source": "Reuters · US equity funds witness first weekly outflow in three weeks",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-07",
+      "url": "https://www.reuters.com/business/us-equity-funds-witness-first-weekly-outflow-three-weeks-2026-10-09/"
+    },
+    {
+      "id": "bls",
+      "source": "U.S. Bureau of Labor Statistics · October 2026 release calendar",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-14",
+      "url": "https://www.bls.gov/schedule/2026/10_sched_list.htm"
+    },
+    {
+      "id": "asml",
+      "source": "ASML Investor Relations · Q3 2026 results schedule",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-14",
+      "url": "https://investor.asml.com/quarterly-results"
+    },
+    {
+      "id": "tsmc",
+      "source": "TSMC Investor Relations · Q3 2026 earnings conference",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-15",
+      "url": "https://investor.tsmc.com/english/quarterly-results/2026/q3"
+    },
+    {
+      "id": "qcom",
+      "source": "Qualcomm / Reuters · Arm licensing verdict",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-13",
+      "url": "https://www.qualcomm.com/news/releases/2026/10/qualcomm-statement-on-trial-verdict-win"
+    },
+    {
+      "id": "ceg",
+      "source": "Constellation Energy · Google nuclear power agreement",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-10-06",
+      "url": "https://www.constellationenergy.com/news/2026/10/google-and-constellation-announce-landmark-agreement-to-bring-890-mw-of-new-nuclear-capacity-to-pjm-grid.html"
+    },
+    {
+      "id": "mu",
+      "source": "Micron Investor Relations · FY2026/Q4 results",
+      "capturedAt": "2026-10-14T08:19:17+08:00",
+      "asOfDate": "2026-09-30",
+      "url": "https://investors.micron.com/news/press-release/2026/Micron-Technology-Inc--Reports-Record-Fiscal-Fourth-Quarter-and-Full-Year-2026-Results/default.aspx"
+    }
+  ],
+  "sections": {
+    "market": {
+      "title": "市场总览",
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "① 大盘 & 宏观"
+        },
+        {
+          "type": "paragraph",
+          "text": "10月13日美股是“指数横盘、内部偏弱”的交易日。道指−0.35%、标普500−0.02%、纳指−0.15%，小盘Russell 2000−0.40%。主要矛盾不是单一宏观数据冲击，而是AI资本开支回报率的再定价、存储芯片中国竞争担忧和银行财报分化；10年美债收益率约5.22%，较前一有效日略回落，美元指数约下跌0.34%。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "对象",
+            "收盘/读数",
+            "变动",
+            "口径"
+          ],
+          "rows": [
+            [
+              "道琼斯工业平均指数",
+              "51,670.10",
+              "−0.35%",
+              "AP/Reuters 常规收盘"
+            ],
+            [
+              "标普500",
+              "7,805.45",
+              "−0.02%",
+              "AP/Reuters 常规收盘"
+            ],
+            [
+              "纳斯达克综合指数",
+              "27,204.38",
+              "−0.15%",
+              "AP/Reuters 常规收盘"
+            ],
+            [
+              "Russell 2000",
+              "2,783.37",
+              "−0.40%",
+              "AP 常规收盘"
+            ],
+            [
+              "SPY",
+              "778.01",
+              "−0.01%",
+              "IBKR Last 常规日线"
+            ],
+            [
+              "QQQ",
+              "743.57",
+              "−0.33%",
+              "IBKR Last 常规日线"
+            ],
+            [
+              "IWM",
+              "276.70",
+              "−0.43%",
+              "IBKR Last 常规日线"
+            ],
+            [
+              "SMH",
+              "588.12",
+              "−0.49%",
+              "IBKR Last 常规日线"
+            ],
+            [
+              "IGV",
+              "110.98",
+              "−0.27%",
+              "IBKR Last 常规日线"
+            ],
+            [
+              "VIX",
+              "15.27",
+              "+0.06点 / +0.39%",
+              "IBKR 冻结延迟快照；非实时"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "跨资产：Reuters报道10年美债约5.22%；Brent结算105.69美元/桶、−0.9%。WTI约94.14美元/桶、+0.4%；黄金期货约4,177.3美元/盎司、下跌13.3美元。美元指数约−0.34%。比特币本期仅取得次级来源的约83,000美元附近时点数据，不把它当作统一美股收盘价。"
+        },
+        {
+          "type": "heading",
+          "text": "② 板块表现 & 资金轮动"
+        },
+        {
+          "type": "paragraph",
+          "text": "板块状态判断：板块轮动 + AI硬件风险偏好下降，置信度中高。SMH收588.12，仍低于20日线601.83但高于50日线580.10；IGV仍位于20/50/200日线上方。能源与通信服务在收盘前分别约+1.6%、+1.2%，对冲了芯片和医疗的拖累。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "主题",
+            "10/13证据",
+            "1周/结构",
+            "判断"
+          ],
+          "rows": [
+            [
+              "大型科技",
+              "AAPL、MSFT、META等相对抗跌；指数权重支撑明显",
+              "大型股仍强于多数股票",
+              "趋势未破但集中度高"
+            ],
+            [
+              "半导体/AI硬件",
+              "SMH −0.49%，近5日约−7.0%；MU −3.62%",
+              "SOX连续多日回落，CXMT竞争担忧",
+              "当前最弱主线之一"
+            ],
+            [
+              "软件/AI应用",
+              "IGV −0.27%，仍高于三条均线",
+              "相对半导体明显更强",
+              "存在相对补涨/防守轮动"
+            ],
+            [
+              "光通信",
+              "FN −6.26%且量比1.42×",
+              "前一日同业已明显回撤",
+              "高预期压缩仍在"
+            ],
+            [
+              "电力/核电",
+              "CEG +0.65%，趋势保持",
+              "Google/CEG长期PPA仍是中期支撑",
+              "强弱分化，不能套原油逻辑"
+            ],
+            [
+              "能源",
+              "市场行业口径约+1.6%至+1.7%",
+              "油价仍处高位",
+              "当日最强方向"
+            ],
+            [
+              "金融",
+              "XLF约−0.4%；银行财报后反应分化",
+              "盈利好不等于股价上涨",
+              "资金对高估值/利差更挑剔"
+            ],
+            [
+              "小盘",
+              "IWM −0.43%，低于20/50日线",
+              "相对SPY偏弱",
+              "风险偏好未全面扩散"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "真实资金流：没有取得10月13日当天完整ETF申赎数据。最新可靠周度资料显示，截至10月7日美国股票基金净流出约51.1亿美元，大盘股基金流出明显，而科技、公用事业、工业等行业基金合计有流入。该数据有滞后，不能写成10月13日当日资金净流向。"
+        },
+        {
+          "type": "heading",
+          "text": "③ 重点个股异动"
+        },
+        {
+          "type": "list",
+          "items": [
+            "MU：收953.19、−3.62%，近5日约−8.83%，20日线约1,042.79。Reuters把存储股压力与中国CXMT技术进展及AI投资回报疑虑联系起来；这是行业竞争与估值压缩证据，不等于Micron已经失去HBM客户。",
+            "FN：收427.82、−6.26%，当日成交量约为20日均量1.42倍，是账户主要拖累。光通信此前已经经历板块性高预期回撤；本期未发现足够证据把FN下跌单独归因于新的公司基本面事故。",
+            "QCOM：收176.86、+1.39%，RSI约28、接近50日线174.15。10月13日Delaware陪审团认定Arm在许可协议上违约并干扰Qualcomm业务，但仅判名义赔偿；后续法官裁决和上诉仍可能影响经济后果。",
+            "NVDA：收228.52、+0.97%，但中国数据中心AI芯片份额受出口限制及本土竞争影响的报道增加。当前仍不能据此推断全球AI需求已见顶。",
+            "CEG：收295.79、+0.65%。10月6日与Google签署长期协议，目标在PJM增加890MW核电容量，并有额外2,700MW供应安排，构成中期基本面支撑而非10月13日新增催化。"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "④ 财报 & 催化剂"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "日期",
+            "事件",
+            "确认状态",
+            "对账户/观察池的意义"
+          ],
+          "rows": [
+            [
+              "10/14 07:00 CET（ASML官网原标注）",
+              "ASML Q3 2026结果",
+              "官方确认",
+              "EUV订单、毛利率与客户资本开支是半导体风险偏好关键读穿"
+            ],
+            [
+              "10/14 08:30 ET / 21:30 JST",
+              "美国9月CPI + 实际收入",
+              "BLS确认",
+              "与美股开盘同一时刻，决定2Y/10Y和成长股估值压力"
+            ],
+            [
+              "10/15 14:00台湾 / 15:00 JST / 02:00 ET",
+              "TSMC Q3电话会",
+              "官方确认",
+              "Q3指引此前为收入446–458亿美元、毛利率65–67%；实际和下一季指引验证AI需求"
+            ],
+            [
+              "10/15 08:30 ET / 21:30 JST",
+              "美国9月PPI",
+              "BLS确认",
+              "继续验证上游通胀和利率路径"
+            ],
+            [
+              "10/16 08:30 ET",
+              "美国进出口价格",
+              "BLS确认",
+              "补充输入型通胀信号"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "10月13日银行财报整体盈利并不差，但股价反应分化：这说明当前市场更关注净利息收入、估值和未来指引，而不是简单的EPS beat。没有可靠一致预期的数据不在本报告硬写Beat/Miss。"
+        },
+        {
+          "type": "heading",
+          "text": "⑤ 市场宽度 & 技术面"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "ETF",
+            "收盘",
+            "20日线",
+            "50日线",
+            "200日线",
+            "RSI14",
+            "当日量/20日均量"
+          ],
+          "rows": [
+            [
+              "SPY",
+              "778.01",
+              "769.87",
+              "768.60",
+              "723.82",
+              "62.6",
+              "0.70×"
+            ],
+            [
+              "QQQ",
+              "743.57",
+              "741.34",
+              "726.55",
+              "673.40",
+              "52.0",
+              "0.87×"
+            ],
+            [
+              "SMH",
+              "588.12",
+              "601.83",
+              "580.10",
+              "508.50",
+              "42.9",
+              "1.24×"
+            ],
+            [
+              "IGV",
+              "110.98",
+              "107.96",
+              "105.52",
+              "93.73",
+              "59.5",
+              "1.05×"
+            ],
+            [
+              "IWM",
+              "276.70",
+              "281.14",
+              "290.73",
+              "277.31",
+              "36.7",
+              "1.19×"
+            ],
+            [
+              "RSP",
+              "213.30",
+              "211.37",
+              "216.18",
+              "206.42",
+              "57.2",
+              "0.97×"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "宽度比指数更弱。Gainbot在5,118只普通股口径下统计2,151上涨、2,878下跌、89平盘；thetrading.tools在4,740只合格普通股口径下统计89只52周新高、353只新低，连续新低占优。两个口径不同，因此不合并成一套“官方NYSE/Nasdaq统计”。结论一致：指数靠近高位，但市场内部领导面偏窄。"
+        },
+        {
+          "type": "heading",
+          "text": "⑥ 下一交易日观察清单"
+        },
+        {
+          "type": "paragraph",
+          "text": "下一实际美股交易日为2026年10月14日（美东）。最大主线：CPI + ASML对利率与AI硬件估值的双重验证。最大风险：指数尚稳但半导体/宽度继续恶化，同时账户存在过大的条件买入名义额。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "优先级",
+            "股票",
+            "栏目",
+            "关注原因",
+            "确认/失效点"
+          ],
+          "rows": [
+            [
+              "1",
+              "FN",
+              "持仓分析",
+              "最大单股仓位且当日−6.26%、量比约1.42×",
+              "收盘重新站上20日线432.82为修复；若再低于427.82且继续放量，防守优先"
+            ],
+            [
+              "2",
+              "NVDA",
+              "持仓/交易计划",
+              "持仓+正股买单+REPLACED卖Put叠加",
+              "228.32的20日线与223.03的50日线"
+            ],
+            [
+              "3",
+              "MU",
+              "交易计划",
+              "存储竞争担忧、买单金额高于现金",
+              "先看953附近止跌与981.98的50日线；不在CPI前抬850买单"
+            ],
+            [
+              "4",
+              "QCOM",
+              "交易计划",
+              "RSI约28、50日线附近，Arm陪审团结果对Qualcomm有利",
+              "174.15能否守住；若跌破169.36则买点逻辑降级"
+            ],
+            [
+              "5",
+              "CEG",
+              "持仓分析",
+              "仍在中期强趋势且Google/核电合同构成基本面支撑",
+              "300.40的20日高点；跌回285附近200日线则防守"
+            ],
+            [
+              "6",
+              "TSM",
+              "个股分析",
+              "10/15财报是AI需求验证点",
+              "434.05的50日线及10/15营收/毛利率指引"
+            ],
+            [
+              "7",
+              "AMD",
+              "个股分析",
+              "月度仍强但半导体板块短线弱",
+              "AMD 608.18与SMH 601.83能否同时收复"
+            ],
+            [
+              "8",
+              "AAPL",
+              "个股分析",
+              "强势且量能高于20日均量",
+              "336.28的20日线能否在CPI冲击后守住"
+            ],
+            [
+              "9",
+              "ORCL",
+              "个股分析",
+              "单日+4.23%，但长期均线仍压制",
+              "145.92的50日线；无法收复则视为反弹而非趋势反转"
+            ],
+            [
+              "10",
+              "CRWD",
+              "交易计划",
+              "软件相对半导体更抗跌；深价挂单",
+              "260.03附近20日线能否守稳"
+            ]
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "⑦ 最重要的5个信号"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "信号",
+            "观察对象/阈值",
+            "偏多/偏空解释",
+            "对账户的实际含义"
+          ],
+          "rows": [
+            [
+              "美国9月CPI · 10/14 08:30 ET（21:30 JST）",
+              "实际/核心数据相对市场一致预期 + 2Y/10Y反应",
+              "低于预期且收益率回落：有利成长估值；高于预期且收益率急升：防守",
+              "决定是否提高全部科技/AI订单风险预算"
+            ],
+            [
+              "SMH",
+              "601.83的20日线 / 580.10的50日线",
+              "收复20日线=硬件修复；失守50日线=短线风险进一步恶化",
+              "MU/NVDA/AMD/SKHY订单先看板块再动作"
+            ],
+            [
+              "市场宽度",
+              "10/13的2,151涨/2,878跌与89新高/353新低",
+              "涨跌家数转正且新低显著收缩才算内部改善",
+              "若指数稳但宽度继续弱，不扩大高贝塔仓位"
+            ],
+            [
+              "FN",
+              "432.82的20日线与量比",
+              "放量收复=抛压缓和；继续放量低于当前收盘=集中度风险上升",
+              "先控制现有15股风险，不执行20股抄底单"
+            ],
+            [
+              "NVDA",
+              "228.32/223.03",
+              "守20日并收复板块趋势=持有；跌破50日且SMH同步破位=防守",
+              "正股215买单与Put接货预算不能同时默认启用"
+            ]
+          ]
+        }
+      ]
+    },
+    "portfolio": {
+      "title": "账户表现",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "IBKR PortfolioAnalyst本期口径为TWR。10月13日账户NAV 26,837.00美元，1D TWR −1.4729%；现金7,284.90美元，购买力83,686.80美元，但购买力不是自有现金。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "指标",
+            "本次读取",
+            "口径/说明"
+          ],
+          "rows": [
+            [
+              "净清算价值",
+              "26,837.00 USD",
+              "IBKR account summary"
+            ],
+            [
+              "现金",
+              "7,284.90 USD",
+              "约占NAV 27.1%"
+            ],
+            [
+              "股票/总头寸摘要",
+              "19,552.10 USD",
+              "账户摘要；与持仓收盘重估存在时点差"
+            ],
+            [
+              "1D TWR",
+              "−1.47%",
+              "10/12→10/13"
+            ],
+            [
+              "近7日 TWR",
+              "−3.94%",
+              "10/06→10/13"
+            ],
+            [
+              "MTD TWR",
+              "+5.58%",
+              "10月截至10/13"
+            ],
+            [
+              "近1月 TWR",
+              "+7.30%",
+              "9/11→10/13"
+            ],
+            [
+              "记录以来 TWR",
+              "+11.73%",
+              "PA记录期截至10/13"
+            ],
+            [
+              "记录期最大回撤",
+              "−4.27%",
+              "根据PA累计TWR指数逐日计算"
+            ],
+            [
+              "SPY 8/31→10/13价格回报",
+              "+1.43%",
+              "不含股息再投资"
+            ],
+            [
+              "QQQ 8/31→10/13价格回报",
+              "+3.74%",
+              "不含股息再投资"
+            ],
+            [
+              "账户相对SPY/QQQ",
+              "+10.30 / +7.99个百分点",
+              "TWR vs ETF价格回报，非严格总回报同口径"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "10月13日PA NAV较前一日约减少401.20美元。持仓接口返回的daily_pnl合计约−422.75美元，两者存在约21.55美元差异，与持仓/摘要估值差异数量级一致；本报告不擅自把差额归因为费用、利息或汇率。"
+        }
+      ]
+    },
+    "holdings": {
+      "title": "持仓收益",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "以下持仓用10月13日IBKR常规日线收盘重新估值；账户页面的mark快照与常规收盘略有差异。收盘重估股票市值约19,529.10美元、重算未实现浮盈约1,797.10美元。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "持仓",
+            "数量",
+            "平均成本",
+            "10/13收盘",
+            "1D",
+            "收盘重估市值",
+            "重算浮盈",
+            "重算浮盈率",
+            "占账户NAV"
+          ],
+          "rows": [
+            [
+              "CEG",
+              "20",
+              "260.05",
+              "295.79",
+              "+0.65%",
+              "5,915.80",
+              "+714.80",
+              "+13.74%",
+              "22.0%"
+            ],
+            [
+              "FN",
+              "15",
+              "391.80",
+              "427.82",
+              "−6.26%",
+              "6,417.30",
+              "+540.30",
+              "+9.19%",
+              "23.9%"
+            ],
+            [
+              "MO",
+              "20",
+              "68.05",
+              "71.56",
+              "−0.14%",
+              "1,431.20",
+              "+70.20",
+              "+5.16%",
+              "5.3%"
+            ],
+            [
+              "NU",
+              "150",
+              "13.1067",
+              "15.58",
+              "−2.69%",
+              "2,337.00",
+              "+371.00",
+              "+18.87%",
+              "8.7%"
+            ],
+            [
+              "NVDA",
+              "15",
+              "221.80",
+              "228.52",
+              "+0.97%",
+              "3,427.80",
+              "+100.80",
+              "+3.03%",
+              "12.8%"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "账户当日风险高度集中在FN：它是最大股票仓位（约23.9% NAV），又是当日最明显的负贡献。CEG和NVDA当日上涨提供部分对冲。未取得完整已实现损益、股息税费分解，本页不把未实现浮盈当成账户累计收益。"
+        }
+      ]
+    },
+    "analysis": {
+      "title": "持仓分析",
+      "blocks": [
+        {
+          "type": "heading",
+          "text": "CEG · 核电/电力"
+        },
+        {
+          "type": "paragraph",
+          "text": "状态：持有，暂不追高。295.79高于20/50/200日线，RSI约65，20日高点约300.40。Google长期PPA和核电扩容给中期基本面提供支撑。若有效突破300.40且板块宽度改善，可继续持有；若跌破200日线约285.46并伴随基本面/电价逻辑转弱，再评估减4–5股。下一交易日最重要：300.40能否突破并守住。"
+        },
+        {
+          "type": "heading",
+          "text": "FN · 光通信/AI硬件供应链"
+        },
+        {
+          "type": "paragraph",
+          "text": "状态：防守，暂停加仓。427.82单日−6.26%，量比约1.42×，已跌破20日线432.82和50日线451.11；同时它约占NAV 23.9%。若下一交易日继续放量收在427.82下方，优先评估减3–5股降低集中度；若重新站回432.82并且光通信同业同步止跌，再撤销短线防守。390美元的20股买单不建议按原数量默认执行。"
+        },
+        {
+          "type": "heading",
+          "text": "MO · 必需消费/高股息"
+        },
+        {
+          "type": "paragraph",
+          "text": "状态：持有，不追涨。71.56高于20/50/200日线，RSI约67。防守轮动有利，但高股息并不等于低价格风险。60美元NEW买单可作为深价情景，先核对65美元REPLACED链并把总预算纳入账户现金约束。下一交易日：71–72区间能否保持相对大盘强势。"
+        },
+        {
+          "type": "heading",
+          "text": "NU · 金融科技"
+        },
+        {
+          "type": "paragraph",
+          "text": "状态：持有，不扩大追涨。15.58仍高于20/50/200日线，20日涨幅约9.8%，RSI约65；但单日−2.69%。若跌破200日线约14.68并且信用质量指标同时恶化，才升级为减仓信号。下一交易日：15.58附近是否止跌及后续逾期/信用成本数据。"
+        },
+        {
+          "type": "heading",
+          "text": "NVDA · AI GPU"
+        },
+        {
+          "type": "paragraph",
+          "text": "状态：持有、限制新增叠加。228.52几乎贴20日线228.32，高于50日线223.03和200日线202.54。中国份额压力是区域性风险，但不能等同全球业务恶化。若守住223–228且SMH收复20日线，可继续持有；若跌破50日线且SMH同步失守580附近，评估减3–5股。下一交易日：228.32/223.03与SMH同步方向。"
+        }
+      ]
+    },
+    "trades": {
+      "title": "交易计划",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "IBKR返回14条待处理记录：NEW 8条股票买单；REPLACED 6条记录（含两笔卖Put）。REPLACED缺少完整替换链/OCA关系，因此不把它们直接算成有效独立风险。仅NEW股票买单名义额约35,250美元，是现金7,284.90美元的约4.84倍。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "报告编号",
+            "标的/工具",
+            "方向/数量",
+            "限价",
+            "状态",
+            "距收盘/报价",
+            "建议"
+          ],
+          "rows": [
+            [
+              "O-01",
+              "SKHY 2027-01-15 150 Put",
+              "SELL 1",
+              "20.00",
+              "REPLACED",
+              "正股157.06；Put冻结延迟12.05/12.70",
+              "不视为独立有效单；若重新激活先确认替换链与100股标准情景的15,000美元接货预算；不为促成交下调权利金"
+            ],
+            [
+              "O-02",
+              "NVDA 2027-01-15 215 Put",
+              "SELL 1",
+              "15.00",
+              "REPLACED",
+              "正股228.52；Put冻结延迟9.15/9.35",
+              "不计入有效预算；若重新激活，标准100股情景接货21,500美元、按15权利金盈亏平衡约200美元；与215正股买单只能合并评估"
+            ],
+            [
+              "O-03",
+              "MU",
+              "BUY 10",
+              "850",
+              "NEW",
+              "收盘953.19；限价低约10.8%",
+              "不抬价；10股需8,500美元已高于当前现金，若希望真实可执行优先把数量缩至2–4股再复核"
+            ],
+            [
+              "O-04",
+              "MO",
+              "BUY 40",
+              "60",
+              "NEW",
+              "收盘71.56；低约16.2%",
+              "可保留为深度防守价，但40股需2,400美元；先核对65美元REPLACED记录是否为同一替换链"
+            ],
+            [
+              "O-05",
+              "QQQI",
+              "BUY 50",
+              "53",
+              "NEW",
+              "收盘55.88；低约5.2%",
+              "价位不算激进，但2,650美元占现金较高；更适合20–30股预算情景"
+            ],
+            [
+              "O-06",
+              "MO",
+              "BUY 40",
+              "65",
+              "REPLACED",
+              "收盘71.56；低约9.2%",
+              "仅核对替换链，不与60美元NEW订单重复计资金"
+            ],
+            [
+              "O-07",
+              "SPCX",
+              "BUY 20",
+              "150",
+              "REPLACED",
+              "收盘156.54；低约4.2%",
+              "近期5日约−8.9%；若恢复有效，先考虑5–10股而非20股，避免高波动集中"
+            ],
+            [
+              "O-08",
+              "NVDA",
+              "BUY 10",
+              "220",
+              "REPLACED",
+              "收盘228.52；低约3.7%",
+              "不与215美元NEW买单、卖Put重复计算；先确认替换关系"
+            ],
+            [
+              "O-09",
+              "FN",
+              "BUY 20",
+              "390",
+              "NEW",
+              "收盘427.82；低约8.8%",
+              "优先建议暂缓/减量；FN已是最大股票仓位之一且当日放量下跌，20股会显著放大集中度"
+            ],
+            [
+              "O-10",
+              "CRWD",
+              "BUY 20",
+              "200",
+              "NEW",
+              "收盘261.21；低约23.4%",
+              "深度回撤单可保留观察，但4,000美元预算偏大；实际执行情景更适合5–8股"
+            ],
+            [
+              "O-11",
+              "ZS",
+              "BUY 20",
+              "180",
+              "REPLACED",
+              "收盘228.66；低约21.3%",
+              "仅状态核对，不追价；不与CRWD同时默认扩大网络安全仓位"
+            ],
+            [
+              "O-12",
+              "NVDA",
+              "BUY 20",
+              "215",
+              "NEW",
+              "收盘228.52；低约5.9%",
+              "价位接近50日线下方，但20股需4,300美元；在现金约7,285美元下更适合5–8股情景且不与Put叠加"
+            ],
+            [
+              "O-13",
+              "AMZN",
+              "BUY 20",
+              "240",
+              "NEW",
+              "收盘258.58；低约7.2%",
+              "不追价；20股需4,800美元，建议先把可执行数量降至3–5股再与其他买单排序"
+            ],
+            [
+              "O-14",
+              "QCOM",
+              "BUY 5",
+              "160",
+              "NEW",
+              "收盘176.86；低约9.5%",
+              "5股仅约800美元；RSI约28且50日线约174.15，兼有Arm诉讼陪审团结果催化，是当前订单中资金效率较好的深价单"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "两笔Put报价均为FROZEN_DELAYED。NVDA 215 Put约9.15/9.35，Delta约−0.318；SKHY 150 Put约12.05/12.70，Delta约−0.368；本次IV字段返回无效值，因此不引用。合约乘数/交割调整未由订单接口完整确认，100股仅作为标准美股期权情景，不作为已核实义务。"
+        },
+        {
+          "type": "paragraph",
+          "text": "资金排序建议：先把QCOM小额深价单、必要的宽基/防守单放在可承受预算内；FN、MU、NVDA、AMZN等大额订单需要减量/互斥排序。所有调整均为供你复核的建议，本报告没有改单、撤单或下单。"
+        }
+      ]
+    },
+    "stocks": {
+      "title": "个股分析",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "按去重优先级，等待买点剔除持仓及订单后共15个公司/工具分析单元（GOOG/GOOGL合并公司研究、SPY作为ETF单独处理）。以下全部使用10月13日常规日线。"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "证券",
+            "行业/主题",
+            "收盘",
+            "1D",
+            "5D",
+            "约1M(20D)",
+            "技术/板块",
+            "当前动作",
+            "下一交易日验证"
+          ],
+          "rows": [
+            [
+              "SAIL",
+              "安全/AI应用",
+              "19.37",
+              "−1.02%",
+              "−2.71%",
+              "−3.05%",
+              "RSI34；收盘=20日低点，低于20日线",
+              "等待；先站回20.42再评估",
+              "20.42能否收复"
+            ],
+            [
+              "NBIS",
+              "AI云/数据中心",
+              "206.86",
+              "−1.52%",
+              "−17.21%",
+              "−0.25%",
+              "低于20/50日线；RSI42",
+              "等待，不接连续下跌",
+              "206.86能否守住并回到224–229"
+            ],
+            [
+              "IREN",
+              "AI算力/数据中心",
+              "34.80",
+              "0.00%",
+              "−15.70%",
+              "−16.31%",
+              "RSI11.9但低于20/50/200日线",
+              "超卖不等于买点；等待趋势止跌",
+              "能否重新站上41.6附近20/50日线"
+            ],
+            [
+              "ONDS",
+              "无人系统/通信",
+              "6.71",
+              "+0.60%",
+              "−9.45%",
+              "−7.32%",
+              "低于全部主要均线；RSI32",
+              "等待",
+              "先收复7.28"
+            ],
+            [
+              "LEU",
+              "核燃料",
+              "134.28",
+              "−0.76%",
+              "−12.74%",
+              "−5.52%",
+              "低于20/50/200日线；RSI33",
+              "等待，不因核能主题机械抄底",
+              "144.27能否收复"
+            ],
+            [
+              "GOOGL/GOOG",
+              "大型科技/AI",
+              "353.78",
+              "+0.30%",
+              "+1.75%",
+              "+2.55%",
+              "高于20/50/200日线；RSI71",
+              "强势但不追高",
+              "354.97附近20日高点能否有效突破"
+            ],
+            [
+              "AMD",
+              "半导体/AI",
+              "605.53",
+              "+1.90%",
+              "−6.76%",
+              "+20.10%",
+              "略低20日线；高于50/200；RSI47",
+              "等SMH止跌后再试仓",
+              "608.18与SMH 601.83能否同步收复"
+            ],
+            [
+              "AAPL",
+              "大型科技",
+              "341.27",
+              "+0.09%",
+              "+2.29%",
+              "+3.00%",
+              "高于全部均线；量比1.27",
+              "持强不追；CPI后回踩更优",
+              "336.28上方是否守稳"
+            ],
+            [
+              "SPY",
+              "宽基ETF",
+              "778.01",
+              "−0.01%",
+              "−0.14%",
+              "+2.72%",
+              "高于20/50/200；RSI63",
+              "仅适合小额定投，不把指数稳等同宽度健康",
+              "CPI后能否守住769–770"
+            ],
+            [
+              "ORCL",
+              "云计算/AI应用",
+              "143.20",
+              "+4.23%",
+              "−1.08%",
+              "+2.03%",
+              "站回20日线但仍低于50/200",
+              "不追单日反弹",
+              "145.92的50日线"
+            ],
+            [
+              "NOK",
+              "通信设备",
+              "9.86",
+              "−0.40%",
+              "−10.12%",
+              "+0.20%",
+              "低于20/50/200；RSI41",
+              "等待",
+              "10.15–10.41均线带"
+            ],
+            [
+              "TSM",
+              "晶圆代工",
+              "445.12",
+              "+0.17%",
+              "−7.71%",
+              "+7.58%",
+              "低20日线、高于50/200；RSI49",
+              "10/15财报前只适合极小事件仓或等待财报",
+              "434.05支撑与10/15指引"
+            ],
+            [
+              "MSFT",
+              "大型科技/云",
+              "543.45",
+              "+0.43%",
+              "+2.67%",
+              "+9.32%",
+              "RSI77.8；高于全部均线",
+              "不追高",
+              "514–543上升趋势能否在CPI后保持"
+            ],
+            [
+              "TSLA",
+              "汽车/AI",
+              "375.23",
+              "−0.74%",
+              "−1.43%",
+              "+5.23%",
+              "高于20/50，低于200；RSI47",
+              "等待200日线附近方向确认",
+              "389.52能否收复"
+            ],
+            [
+              "UBER",
+              "出行平台",
+              "71.32",
+              "−0.25%",
+              "+3.24%",
+              "−0.15%",
+              "高于20、低于50/200；RSI59",
+              "观察改善，不急于追",
+              "73.10的50日线"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "当前最接近“可以小仓试”的并不是跌得最多的IREN/NBIS/LEU，而是事件风险可控、趋势仍完整的标的；但10月14日CPI与ASML同日，整体建议把新开仓规模压小。TSM应把10月15日财报视为主要事件风险。"
+        }
+      ]
+    },
+    "watchlist": {
+      "title": "关注列表",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "以下为全部其他IBKR自选分组与固定观察池在剔除持仓、订单和等待买点后的主题归类。分类已完整保留，但本次没有为每个剩余代码取得完整1D/5D/1M、财报一致预期和SEC事件，因此本栏目研究深度为partial。"
+        },
+        {
+          "type": "list",
+          "items": [
+            "大型科技/核心：META、INTC、IBKR、PYPL（AMZN/GOOGL/GOOG/AAPL/MSFT/TSLA已在更高优先级）",
+            "半导体/AI硬件：AVGO、MRVL、ARM、ANET、DELL、SMCI、SNDK、SOXX（MU/AMD/NVDA/TSM/SKHY已在更高优先级）",
+            "软件/AI应用：CRM、NOW、SNOW、PLTR、DDOG、NET、PANW、MDB（ORCL/CRWD/ZS已在更高优先级）",
+            "光通信：LITE、COHR、AAOI、TSEM；SIVE身份/上市地仍需单独核实，不用相似代码代替",
+            "AI电力/数据中心：VST、NRG、ETN、PWR、GEV、OKLO、SMR、BE、APLD、RIOT、VRT、CBRS（CEG/IREN/NBIS/LEU已在更高优先级）",
+            "商业航天/军工：LUNR、RDW、RKLB、ASTS、SPCE、IRDM、VSAT、GSAT、LMT、NOC、XAR、ITA",
+            "ETF/杠杆：QQQ、VOO、SGOV、SPYI、QQQM、STXL、MULL、MUU、IREZ、IREX；杠杆产品按每日重置与路径依赖单独评估",
+            "外汇：EUR/USD、GBP/USD、USD/JPY；只用于宏观环境，不套公司EPS模板"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "强制数据质量检查"
+        },
+        {
+          "type": "table",
+          "headers": [
+            "检查项",
+            "状态",
+            "来源/数据日",
+            "影响"
+          ],
+          "rows": [
+            [
+              "宏观/行业实际净流量",
+              "部分取得",
+              "Reuters截至10/7的周度基金流；10/13当日流未取得",
+              "只把10/7周度数据作为滞后背景，10/13轮动以量价描述，不宣称当日净流入"
+            ],
+            [
+              "市场涨跌家数",
+              "取得替代口径",
+              "Gainbot 5,118只普通股：2,151涨/2,878跌/89平，10/13",
+              "说明全市场内部偏弱；不是NYSE/Nasdaq官方逐交易所口径"
+            ],
+            [
+              "52周新高/新低",
+              "取得替代口径",
+              "thetrading.tools 4,740只普通股：89新高/353新低，10/13",
+              "领导面明显收缩；与Gainbot的$300M+新高低口径不混算"
+            ],
+            [
+              "优先级股票价格/技术",
+              "28/28分析单元",
+              "IBKR 10/13日线",
+              "持仓5、非持仓订单8、等待买点15均有当期技术数据"
+            ],
+            [
+              "全部观察池财报/一致预期/SEC穷尽检查",
+              "未完成",
+              "持仓和主要事件优先；未对全部剩余代码逐一SEC检索",
+              "不能把未检索股票写成“无公司事件”；周报继续补全"
+            ],
+            [
+              "GitHub历史归档",
+              "本次将新增",
+              "daily-2026-10-13-v1",
+              "旧10/12日报不覆盖，日期筛选继续保留"
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "appendix": {
+    "title": "数据覆盖、计算与来源",
+    "blocks": [
+      {
+        "type": "paragraph",
+        "text": "账户价格、持仓、订单、自选及TWR来自本次IBKR连接；市场新闻与宏观采用AP/Reuters/BLS及公司IR。所有精确价位建议以常规收盘日线为观察阈值，而不是保证成交或预测。"
+      },
+      {
+        "type": "paragraph",
+        "text": "本报告没有执行任何交易。购买力没有当作现金；REPLACED订单没有被简单当作有效或失效；ETF价格回报没有冒充含息总回报；真实资金流缺失时没有把成交量代理写成机构净流入。"
+      },
+      {
+        "type": "list",
+        "items": [
+          "Associated Press · How major US stock indexes fared Tuesday｜https://apnews.com/article/a0a577dfd12f63ee6780a56ab02b55c4",
+          "Reuters · World stocks dip on AI spending concerns; Brent settles lower｜https://www.reuters.com/world/asia-pacific/global-markets-wrapup-1-2026-10-13/",
+          "Reuters · US chip stocks extend slide as China memory report, AI spending jitters hit sector｜https://www.reuters.com/world/china/us-chip-stocks-extend-slide-china-memory-report-ai-spending-jitters-hit-sector-2026-10-13/",
+          "thetrading.tools · New Highs – New Lows｜https://www.thetrading.tools/new-highs-new-lows",
+          "Gainbot · US stock market session brief｜https://gainbot.ai/brief/2026-10-13",
+          "Reuters · US equity funds witness first weekly outflow in three weeks｜https://www.reuters.com/business/us-equity-funds-witness-first-weekly-outflow-three-weeks-2026-10-09/",
+          "U.S. Bureau of Labor Statistics · October 2026 release calendar｜https://www.bls.gov/schedule/2026/10_sched_list.htm",
+          "ASML Investor Relations · Q3 2026 results schedule｜https://investor.asml.com/quarterly-results",
+          "TSMC Investor Relations · Q3 2026 earnings conference｜https://investor.tsmc.com/english/quarterly-results/2026/q3",
+          "Qualcomm / Reuters · Arm licensing verdict｜https://www.qualcomm.com/news/releases/2026/10/qualcomm-statement-on-trial-verdict-win",
+          "Constellation Energy · Google nuclear power agreement｜https://www.constellationenergy.com/news/2026/10/google-and-constellation-announce-landmark-agreement-to-bring-890-mw-of-new-nuclear-capacity-to-pjm-grid.html",
+          "Micron Investor Relations · FY2026/Q4 results｜https://investors.micron.com/news/press-release/2026/Micron-Technology-Inc--Reports-Record-Fiscal-Fourth-Quarter-and-Full-Year-2026-Results/default.aspx"
+        ]
+      }
+    ]
+  }
+}
