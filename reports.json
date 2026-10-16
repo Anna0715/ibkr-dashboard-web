@@ -447,7 +447,7 @@
         ],
         "orders": [
           {
-            "order_id": 1867328184,
+            "publicOrderRef": 1,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -460,7 +460,7 @@
             "order_time": "2026-10-13T01:38:02Z"
           },
           {
-            "order_id": 450355565,
+            "publicOrderRef": 2,
             "order_status": "REPLACED",
             "order_type": "LIMIT",
             "side": "SELL",
@@ -473,7 +473,7 @@
             "order_time": "2026-10-13T01:37:05Z"
           },
           {
-            "order_id": 1131146452,
+            "publicOrderRef": 3,
             "order_status": "CANCELLED",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -486,7 +486,7 @@
             "order_time": "2026-10-13T01:34:54Z"
           },
           {
-            "order_id": 1428607308,
+            "publicOrderRef": 4,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "SELL",
@@ -499,7 +499,7 @@
             "order_time": "2026-10-10T00:27:26Z"
           },
           {
-            "order_id": 1644700789,
+            "publicOrderRef": 5,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -512,7 +512,7 @@
             "order_time": "2026-10-09T05:59:42Z"
           },
           {
-            "order_id": 1644700718,
+            "publicOrderRef": 6,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -525,7 +525,7 @@
             "order_time": "2026-10-09T05:09:18Z"
           },
           {
-            "order_id": 205263858,
+            "publicOrderRef": 7,
             "order_status": "REPLACED",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -538,7 +538,7 @@
             "order_time": "2026-10-09T05:04:10Z"
           },
           {
-            "order_id": 1672569829,
+            "publicOrderRef": 8,
             "order_status": "REPLACED",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -551,7 +551,7 @@
             "order_time": "2026-10-06T14:34:00Z"
           },
           {
-            "order_id": 1052577550,
+            "publicOrderRef": 9,
             "order_status": "REPLACED",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -564,7 +564,7 @@
             "order_time": "2026-10-06T14:33:30Z"
           },
           {
-            "order_id": 1672569690,
+            "publicOrderRef": 10,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -577,7 +577,7 @@
             "order_time": "2026-10-02T07:39:28Z"
           },
           {
-            "order_id": 1476571581,
+            "publicOrderRef": 11,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -590,7 +590,7 @@
             "order_time": "2026-10-01T14:10:23Z"
           },
           {
-            "order_id": 350917848,
+            "publicOrderRef": 12,
             "order_status": "REPLACED",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -603,7 +603,7 @@
             "order_time": "2026-10-01T14:08:15Z"
           },
           {
-            "order_id": 1131146522,
+            "publicOrderRef": 13,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -616,7 +616,7 @@
             "order_time": "2026-09-24T15:27:29Z"
           },
           {
-            "order_id": 1131145981,
+            "publicOrderRef": 14,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -629,7 +629,7 @@
             "order_time": "2026-09-24T14:09:41Z"
           },
           {
-            "order_id": 1009230213,
+            "publicOrderRef": 15,
             "order_status": "NEW",
             "order_type": "LIMIT",
             "side": "BUY",
@@ -2682,7 +2682,7 @@
             },
             {
               "type": "paragraph",
-              "text": "**另有已取消NVDA10股@220，订单ID1131146452，剩余0，不纳入本页资金合计。** 它与下面REPLACED订单ID1052577550不同，不能据价格相同推断替换关系。连接器未返回完整parent/OCA/替换链，这仍是重要缺口。"
+              "text": "**另有已取消NVDA10股@220，报告内订单编号 #3，剩余0，不纳入本页资金合计。** 它与下面REPLACED报告内订单编号 #9不同，不能据价格相同推断替换关系。连接器未返回完整parent/OCA/替换链，这仍是重要缺口。"
             },
             {
               "type": "table",

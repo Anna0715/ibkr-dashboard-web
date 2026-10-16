@@ -88,12 +88,13 @@ export function extractOrderAmounts(record) {
   const rows = [];
   let excludedTerminal = 0, options = 0, unknown = 0;
   if (record.kind === 'account-snapshot') {
-    for (const order of record.snapshot?.orders ?? []) {
+    for (const [index, order] of (record.snapshot?.orders ?? []).entries()) {
       if (TERMINAL.has(order.order_status)) { excludedTerminal++; continue; }
       if (/\b(?:Put|Call)\b/i.test(String(order.primary_description ?? ''))) { options++; continue; }
       const symbol = orderSymbol(order), quantity = parseReportNumber(order.remaining_shares_qty), price = parseReportNumber(order.limit_price);
       if (!symbol || !finite(quantity) || quantity < 0 || !finite(price) || price < 0) { unknown++; continue; }
-      rows.push({symbol, label:`${symbol} · ${order.order_status || '状态未提供'} · #${order.order_id ?? rows.length + 1}`, value:quantity * price, status:order.order_status, quantity, price, pending:order.order_status === 'REPLACED', sourceId:order.order_id, currency:order.currency || null});
+      const publicOrderRef = Number.isSafeInteger(order.publicOrderRef) && order.publicOrderRef > 0 ? order.publicOrderRef : index + 1;
+      rows.push({symbol, label:`${symbol} · ${order.order_status || '状态未提供'} · #${publicOrderRef}`, value:quantity * price, status:order.order_status, quantity, price, pending:order.order_status === 'REPLACED', sourceId:publicOrderRef, currency:order.currency || null});
     }
   } else {
     const table = tableOf(record, 'trades', ['标的', '方向／工具', '数量', '限价/权利金', '状态']);
