@@ -21,18 +21,21 @@ node scripts/report-pipeline.mjs --root . --input candidate.json --check
 node scripts/report-pipeline.mjs --root . --input candidate.json
 ```
 
-输入对象为 `{record, data?, market?, archiveHtml?}`。`record` 的实际校验规则以程序为准。必需信息包括：
+输入对象为 `{record, data?, market?}`。`record` 的实际校验规则以程序为准。程序依赖仓库同版本的 `reports-charts.mjs` 与 `report-navigation.mjs`，运行时一起读取这些文件。必需信息包括：
 
 - `type: daily | weekly`，`periodStart/periodEnd`，`reportDate`，`closeDate`，带时区的 `capturedAt/cutoff`，`version`，`title`，真实 `completeness`，`sourceNote`。
 - 日报日期按美东收盘日组织，报告生成日独立列出；休市期间的新信息作为明确标注的同收盘日修订，不伪装新增收盘。
 - 七栏目各含 `title` 和 `blocks`。block 为 `heading/paragraph/list/table`；表格列数必须一致。股票标题采用 `SYMBOL · 行业或主题`，确保自动生成对应定位入口。行情表用 `证券/1D/5D/1M`，持仓表保留 `收盘重估市值/重算浮盈/重算日损益`，以复用当前图表。
+- 新归档固定使用 `template: {id: "original-seven-workspace-v1"}`；候选可省略，程序自动补入，只接受此标识。旧历史不重新校验、不改写。市场总览内部必须按顺序保留七部分，对应 heading block 的 `part` 为 `macro/sectors/movers/earnings/breadth/top10/signals`：大盘与宏观、板块与资金轮动、重点个股异动、财报与未来1—3交易日催化、市场宽度与技术面、下一交易日Top10、五信号总结。每个标题之后必须有实际表格或正文；数据不足时保留该部分并说明来源、已覆盖范围、未获取项和影响，不能只留空标题，也不能把Top10与五信号移走来替代七部分。
+- 账户表现保留净值、实际TWR/MWR、回撤、同区间基准及当次可得的现金、保证金、流动性、集中度和压力测试。持仓收益保留数量、成本、市值、当日/累计盈亏、浮盈率、权重和贡献，并注明时点、口径与不可得字段；缺失不得造数。逐股研究按全量自选与固定池去重，逐栏列明实际覆盖/应覆盖、漏项及影响；恢复旧源稿时不能把旧日期研究卡复制成新研究，也不能因七栏目齐全而宣称完整研究。
+- `decisionSummary` 保存简短决策摘要；可选 `summaryBlocks` 按相同 blocks 规则保留完整“今日重点事项”，在七栏目之前展示。它不代替市场七部分。
 - `evidence` 为来源数组，每项含唯一 `id`、`source`、带时区的 `capturedAt`、`asOfDate`，以及公开 `url` 或实际连接 `tool`。`coverage` 含 `missing: [缺口说明]` 与 `sections: {market: {status, evidenceIds}, ...}`，七栏目各列 `complete/partial/missing` 状态和对应来源 id。允许标明缺口的 partial 报告；完整栏目不等于数据与研究全面完成。
 - `id/date/frequency/format/kind/weekEnd/sourceCapturedAt/originalReportPath/pipeline/revisionOf` 为程序输出字段，不能手动写入候选 `record`。`version` 是申请版本下限，程序遇历史修订会自动递增。
-- 附件由已验证 blocks 安全生成或提供通过检查的 HTML；归档路径由程序生成，不能指定任意仓库路径。保留报告对应的账户快照及市场口径。
+- 附件由已验证 blocks 固定生成，不能用 `archiveHtml` 覆盖模板。归档沿用原站深紫样式资产、七栏目导航、手机横向表格和可用图表、股票定位；只冻结该条报告，不加载当前 `data.json/market.json/reports.json`，不把当前账户混入历史。公开HTTP(S)来源链接保持可点击，其他文本按纯文本转义；缺图表数据时只保留正文与明确缺口。归档路径由程序生成，不能指定任意仓库路径。
 
 账户编号、订单/成交的真实内部编号、姓名、邮箱、令牌、密码及后台配置必须先剥离。逐笔订单使用报告内编号，合约身份可保留。不得上传未清洗的 IBKR 原始响应。
 
-公开写入前检查完整待提交文件，包括保留的历史记录和 HTML 正文。订单统一使用报告内 `publicOrderRef` 或序号，前端不得回退显示内部 `order_id`；不能只清洗本期新增记录而把历史私密字段重新上传。私人通知和账户安全内容仅在私聊交付，不放入公开候选文件、附件、提交说明或运行日志。
+公开写入前检查完整待提交文件，包括保留的历史记录和 HTML 正文。订单统一使用报告内 `publicOrderRef` 或序号，前端不得回退显示内部 `order_id`；不能只清洗本期新增记录而把历史私密字段重新上传。账户所有者已明确允许账户金额、持仓、保证金、流动性、风险指标和分析公开，不得以“账户安全”为由整段删除。仍剔除账户编号、真实订单/成交内部ID、姓名邮箱、凭据密钥、私人通知、后台配置和未清洗的原始账户响应；现有身份与凭据校验保持有效。
 
 ## 失败定位与重试
 

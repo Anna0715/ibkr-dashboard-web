@@ -6,8 +6,12 @@ import { access, link, lstat, mkdir, readFile, realpath, rename, rm, stat, write
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { renderReportCharts } from '../reports-charts.mjs';
+import { createStockNavigator, headingAttributes } from '../report-navigation.mjs';
 
 export const WORKSPACES = Object.freeze(['market', 'portfolio', 'holdings', 'analysis', 'trades', 'stocks', 'watchlist']);
+export const REPORT_TEMPLATE_ID = 'original-seven-workspace-v1';
+export const MARKET_PARTS = Object.freeze(['macro', 'sectors', 'movers', 'earnings', 'breadth', 'top10', 'signals']);
 const MAX_INPUT_BYTES = 16 * 1024 * 1024;
 const MAX_REPORT_BYTES = 64 * 1024 * 1024;
 const GENERATION_KEYS = new Set(['generatedAt', 'generated_at', 'preparedAt', 'importedAt']);
@@ -287,6 +291,28 @@ export function validateArchiveHtml(html) {
   return true;
 }
 
+function validateTemplate(record) {
+  if (record.template !== undefined && (!object(record.template) || record.template.id !== REPORT_TEMPLATE_ID || Object.keys(record.template).some(key => key !== 'id'))) fail(`record.template must be {id: "${REPORT_TEMPLATE_ID}"}`);
+  const content = record.sections.market.blocks;
+  const starts = content.map((block, index) => ({ block, index })).filter(({ block }) => block.part !== undefined);
+  if (starts.length !== MARKET_PARTS.length || starts.some(({ block }, index) => block.type !== 'heading' || block.part !== MARKET_PARTS[index])) fail('market needs seven ordered heading parts: ' + MARKET_PARTS.join(', '));
+  for (const [index, { block, index: start }] of starts.entries()) {
+    const body = content.slice(start + 1, starts[index + 1]?.index ?? content.length);
+    const substantive = body.some(substantiveBlock);
+    if (!substantive) fail(`market part ${block.part} needs actual content or an explicit explanation of missing data`);
+  }
+  for (const workspace of WORKSPACES) {
+    const content = record.sections[workspace].blocks;
+    if (!content.some(substantiveBlock)) fail(`section ${workspace} cannot contain headings only or empty placeholders`);
+  }
+}
+
+function substantiveBlock(block) {
+  return ['paragraph', 'text'].includes(block.type) && block.text.trim().length >= 12
+    || block.type === 'list' && block.items.some(value => String(value ?? '').trim().length >= 12)
+    || block.type === 'table' && block.rows.some(row => row.some(value => value !== null && String(value).trim().length));
+}
+
 export function validateBundle(bundle, { now = new Date() } = {}) {
   if (!object(bundle) || !object(bundle.record)) fail('input must be a bundle containing record');
   if (Object.keys(bundle).some(key => !BUNDLE_KEYS.has(key))) fail('bundle contains an unknown field or output path');
@@ -300,6 +326,7 @@ export function validateBundle(bundle, { now = new Date() } = {}) {
   if (record.type === 'weekly' && (record.closeDate < record.periodStart || record.closeDate > record.periodEnd)) fail('weekly closeDate must be inside its period');
   if (!Number.isSafeInteger(record.version) || record.version < 1) fail('record.version must be a positive integer');
   text(record.title, 'record.title');
+  text(record.sourceNote, 'record.sourceNote');
   if (!['complete', 'partial'].includes(record.completeness)) fail('record.completeness must be complete or partial');
   const captureTime = timestamp(record.capturedAt, 'record.capturedAt'), cutoff = timestamp(record.cutoff, 'record.cutoff');
   if (!Number.isFinite(new Date(now).getTime()) || captureTime > new Date(now).getTime() + 300_000 || cutoff > captureTime + 300_000 || cutoff < Date.parse(record.closeDate + 'T00:00:00Z')) fail('capturedAt or cutoff is in the future or inconsistent');
@@ -316,6 +343,11 @@ export function validateBundle(bundle, { now = new Date() } = {}) {
     text(section.title, `record.sections.${workspace}.title`);
     blocks(section.blocks, `record.sections.${workspace}.blocks`);
   }
+  validateTemplate(record);
+  if (record.summaryBlocks !== undefined) {
+    blocks(record.summaryBlocks, 'record.summaryBlocks');
+    if (!record.summaryBlocks.some(substantiveBlock)) fail('record.summaryBlocks cannot contain headings only');
+  }
   if (record.appendix !== undefined) {
     if (!object(record.appendix)) fail('record.appendix must be an object');
     text(record.appendix.title, 'record.appendix.title');
@@ -324,7 +356,7 @@ export function validateBundle(bundle, { now = new Date() } = {}) {
   const evidenceIds = validateEvidence(record, captureTime);
   validateCoverage(record, evidenceIds);
   validateSnapshots(bundle, captureTime);
-  if (Object.hasOwn(bundle, 'archiveHtml')) validateArchiveHtml(bundle.archiveHtml);
+  if (Object.hasOwn(bundle, 'archiveHtml')) fail('archiveHtml cannot replace the original seven-workspace template; provide report blocks instead');
   return bundle;
 }
 
@@ -335,26 +367,80 @@ function canonical(value, { omitGeneration = false } = {}) {
 }
 
 export function contentDigest(bundle) {
-  const record = Object.fromEntries(Object.entries(bundle.record).filter(([key]) => key !== 'version' && !MANAGED_RECORD_KEYS.has(key)));
+  const record = { ...Object.fromEntries(Object.entries(bundle.record).filter(([key]) => key !== 'version' && !MANAGED_RECORD_KEYS.has(key))), template: { id: REPORT_TEMPLATE_ID } };
   return sha256(JSON.stringify(canonical({ ...bundle, record }, { omitGeneration: true })));
 }
 
-function renderBlocks(blockList) {
+function archiveInline(value) {
+  const input = String(value ?? '未提供');
+  let html = '', end = 0;
+  for (const match of input.matchAll(/https?:\/\/[^\s<>"'`]+/g)) {
+    const url = match[0].replace(/[.,，。；;!！?？、）)\]]+$/, '');
+    html += escape(input.slice(end, match.index));
+    try {
+      publicUrl(url, 'report link');
+      html += `<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">${escape(url)}</a>` + escape(match[0].slice(url.length));
+    } catch { html += escape(match[0]); }
+    end = match.index + match[0].length;
+  }
+  return html + escape(input.slice(end));
+}
+
+function renderBlocks(blockList, record, workspace, seenIds = new Set()) {
   return blockList.map(block => {
-    if (block.type === 'heading') return `<h3>${escape(block.text)}</h3>`;
-    if (block.type === 'list') return `<ul>${block.items.map(item => `<li>${escape(item)}</li>`).join('')}</ul>`;
-    if (block.type === 'table') return `<div class="table-scroll"><table><thead><tr>${block.headers.map(header => `<th>${escape(header)}</th>`).join('')}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(value => `<td>${escape(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-    return `<p>${escape(block.text)}</p>`;
+    if (block.type === 'heading') {
+      let attributes = record ? headingAttributes(record, workspace, block.text) : '';
+      const id = attributes.match(/ id="([^"]+)"/)?.[1];
+      if (id && seenIds.has(id)) attributes = '';
+      else if (id) seenIds.add(id);
+      if (workspace === 'market' && MARKET_PARTS.includes(block.part)) attributes += ` data-market-part="${block.part}"`;
+      return `<h3${attributes}>${escape(block.text)}</h3>`;
+    }
+    if (block.type === 'list') return `<ul>${block.items.map(item => `<li>${archiveInline(item)}</li>`).join('')}</ul>`;
+    if (block.type === 'table') return `<div class="table-scroll"><table><thead><tr>${block.headers.map(header => `<th>${escape(header)}</th>`).join('')}</tr></thead><tbody>${block.rows.map(row => `<tr>${row.map(value => `<td>${archiveInline(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    return `<p>${archiveInline(block.text)}</p>`;
   }).join('\n');
 }
 
+const ARCHIVE_RUNTIME = `import { createStockNavigator } from '../report-navigation.mjs';
+const record = JSON.parse(document.getElementById('archive-record').textContent);
+const workspaces = ['market','portfolio','holdings','analysis','trades','stocks','watchlist'];
+let currentWorkspace = 'market';
+function showWorkspace(name) {
+  if (!workspaces.includes(name)) return;
+  currentWorkspace = name;
+  for (const section of document.querySelectorAll('[data-archive-section]')) section.hidden = section.dataset.archiveSection !== name;
+  for (const link of document.querySelectorAll('.workspace-nav [data-workspace]')) {
+    if (link.dataset.workspace === name) link.setAttribute('aria-current','page'); else link.removeAttribute('aria-current');
+  }
+  document.getElementById('workspace-title').textContent = record.sections[name].title;
+}
+window.InvestmentShell = Object.freeze({showWorkspace,getWorkspace:()=>currentWorkspace});
+const route = () => { const name = location.hash.slice(1).replace(/-page$/,''); if (workspaces.includes(name)) showWorkspace(name); };
+for (const link of document.querySelectorAll('.workspace-nav [data-workspace]')) link.addEventListener('click', () => showWorkspace(link.dataset.workspace));
+showWorkspace('market'); route(); window.addEventListener('hashchange', route);
+const filter = Object.freeze({date:record.date,frequency:record.frequency});
+const navigator = createStockNavigator({records:[record],getFilter:()=>filter,setFilter:next=>{if(next.date!==record.date||next.frequency!==record.frequency)throw new Error('Frozen archive');}});
+navigator.refresh();
+document.getElementById('archive-interactive-note').textContent = '七栏目与股票定位均使用本归档数据。';`;
+
+const ARCHIVE_CSS = `.archive-heading{margin-bottom:24px}.archive-heading h1{max-width:1050px}.archive-meta{font-size:12px;color:var(--muted);line-height:1.9;margin-top:10px}.archive-summary{margin:0 0 24px}.archive-summary p{font-size:13px;line-height:1.95}.archive-overview{margin:22px 0}.archive-overview .stat-value{font-size:23px;overflow-wrap:anywhere}.archive-workspace{display:grid;gap:20px}.archive-workspace>.panel{margin:0}.archive-workspace .report-charts{padding:0 22px}.archive-workspace .report-body p{overflow-wrap:anywhere}.archive-workspace .panel-top{padding-bottom:16px}.archive-workspace h2{font-size:19px}.archive-workspace .report-body{font-size:13px}.archive-workspace .report-body h3{font-size:16px}.archive-sources{margin-top:26px}.archive-footer{padding:24px 0;color:var(--soft);font-size:11px}.workspace-nav a{display:flex;align-items:center;min-height:44px;gap:12px;padding:12px 15px;color:#a5a5b9;font-size:13px;border:1px solid transparent;border-radius:8px}.workspace-nav a:hover{background:#1d1d2a}.workspace-nav a[aria-current=page]{color:#c5b1ff;background:#2c253e;border-color:#3a2f51}.archive-number{font-size:10px;color:var(--purple)}.archive-static-nav{color:var(--soft);font-size:11px;line-height:1.8}.archive-sources li{overflow-wrap:anywhere}@media(max-width:820px){.workspace-nav a{flex:0 0 auto;white-space:nowrap;padding:9px 12px}.archive-workspace .report-charts{padding:0 18px}.archive-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.archive-overview .stat-value{font-size:20px}}@media print{.sidebar,.topbar,.skip{display:none}.app-shell{margin-left:0}.archive-workspace[hidden]{display:grid!important}.archive-workspace{break-before:page}.archive-workspace .report-body{color:#222}.report-charts{break-inside:avoid}}`;
+
+/** Freeze only this record. The archive never loads current account/market/reports JSON. */
 export function renderArchive(record) {
   const coverage = record.completeness === 'complete' ? '覆盖完整' : '部分覆盖';
-  const sections = WORKSPACES.map(workspace => `<section id="${workspace}"><h2>${escape(record.sections[workspace].title)}</h2>${renderBlocks(record.sections[workspace].blocks)}</section>`).join('\n');
-  const appendix = record.appendix ? `<section><h2>${escape(record.appendix.title)}</h2>${renderBlocks(record.appendix.blocks)}</section>` : '';
+  const navigator = createStockNavigator({ records: [record], getFilter: () => ({ date: record.date, frequency: record.frequency }), setFilter: () => {} });
+  const seenIds = new Set();
+  const sections = WORKSPACES.map((workspace, index) => `<section id="${workspace}-page" class="workspace-page archive-workspace report-content" data-archive-section="${workspace}" data-report-workspace="${workspace}" aria-labelledby="${workspace}-heading"><article class="panel"><div class="panel-top"><h2 id="${workspace}-heading"><span class="archive-number">0${index + 1}</span> ${escape(record.sections[workspace].title)}</h2><span class="report-badge">${escape(record.coverage.sections[workspace].status === 'complete' ? '本栏目覆盖完整' : '本栏目仍有缺口')}</span></div>${renderReportCharts(record, workspace, { symbolLink: navigator.href })}<div class="report-body">${renderBlocks(record.sections[workspace].blocks, record, workspace, seenIds)}</div></article></section>`).join('\n');
+  const appendix = record.appendix ? `<section class="panel archive-sources"><div class="panel-top"><h2>${escape(record.appendix.title)}</h2></div><div class="report-body">${renderBlocks(record.appendix.blocks)}</div></section>` : '';
   const sources = record.evidence.map(source => `<li>${escape(source.source)} · ${escape(source.asOfDate)} · ${escape(source.capturedAt)}${source.url ? ` · <a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">来源</a>` : ` · ${escape(source.tool)}`}</li>`).join('');
-  const weeklyCoverage = record.frequency !== 'weekly' ? '' : record.tradingDatesVerified === false ? '<p>交易日历未核验；未提供交易日清单，不声明本周交易日覆盖完整，未计算周收益。</p>' : `<p>已核验交易日：${escape(record.coverage.tradingDays.join('、'))}；缺失日：${escape(record.coverage.missingDays.join('、') || '无')}；收益计算方式：${escape(record.coverage.returnMethod)}。</p>`;
-  return `<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(record.title)}</title><style>:root{color-scheme:dark}body{margin:0;background:#0b1118;color:#d8e3ee;font:15px/1.7 system-ui,sans-serif}main{max-width:1200px;margin:auto;padding:28px}section{margin:24px 0;padding:24px;background:#111a25;border:1px solid #263445;border-radius:12px}h1,h2,h3{color:#f0f5fa}h1{font-size:28px}h2{font-size:20px}h3{font-size:17px}p,li{overflow-wrap:anywhere}.meta{color:#92a6bd}.table-scroll{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:10px;text-align:left;border-bottom:1px solid #29384a}a{color:#78b7ff}</style></head><body><main><header><h1>${escape(record.title)}</h1><p class="meta">${record.frequency === 'weekly' ? '周报' : '日报'} · ${escape(record.periodStart)} — ${escape(record.periodEnd)} · v${record.version} · ${coverage}</p><p class="meta">报告日 ${escape(record.reportDate)} · 收盘日 ${escape(record.closeDate)} · 截止 ${escape(record.cutoff)} · 来源取得 ${escape(record.capturedAt)}</p>${record.sourceNote ? `<p>${escape(record.sourceNote)}</p>` : ''}</header>${sections}${appendix}<section><h2>覆盖与来源</h2><p>${coverage}${record.coverage.missing.length ? ' · ' + escape(record.coverage.missing.join('；')) : ''}</p>${weeklyCoverage}<ul>${sources}</ul></section></main></body></html>\n`;
+  const weeklyCoverage = record.frequency !== 'weekly' ? '' : record.coverage.tradingDatesVerified === false ? '<p>交易日历未核验；不声明交易日覆盖完整，未计算周收益。</p>' : `<p>已核验交易日：${escape(record.coverage.tradingDays.join('、'))}；缺失日：${escape(record.coverage.missingDays.join('、') || '无')}；收益计算方式：${escape(record.coverage.returnMethod)}。</p>`;
+  const overviewRows = record.sections.portfolio.blocks.find(block => block.type === 'table')?.rows.slice(0, 4) ?? [];
+  const overview = overviewRows.length ? `<div class="overview archive-overview">${overviewRows.map(row => `<article class="stat-card"><div class="stat-top">${escape(row[0])}</div><div class="stat-value purple">${escape(row[1])}</div>${row[2] != null ? `<p class="stat-detail">${escape(row[2])}</p>` : ''}</article>`).join('')}</div>` : '';
+  const payload = JSON.stringify(record).replace(/[<>&\u2028\u2029]/g, character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+  const runtimeHash = createHash('sha256').update(ARCHIVE_RUNTIME).digest('base64');
+  const csp = `default-src 'none'; script-src 'self' 'sha256-${runtimeHash}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'`;
+  return `<!doctype html>\n<html lang="zh-CN" data-report-template="${REPORT_TEMPLATE_ID}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><meta http-equiv="Content-Security-Policy" content="${escape(csp)}"><meta name="theme-color" content="#0d0e16"><title>${escape(record.title)}</title><link rel="stylesheet" href="../styles.css"><link rel="stylesheet" href="../reports.css"><link rel="stylesheet" href="../reports-charts.css"><link rel="stylesheet" href="../report-navigation.css"><style>${ARCHIVE_CSS}</style></head><body><a class="skip" href="#main">跳至报告正文</a><aside class="sidebar" aria-label="报告七栏目"><div class="sidebar-brand"><div><strong>PORTFOLIO</strong><span>美股收盘与账户决策日报</span></div></div><span class="nav-caption">报告工作区</span><nav class="workspace-nav">${WORKSPACES.map((workspace, index) => `<a href="#${workspace}-page" data-workspace="${workspace}"><span class="archive-number">0${index + 1}</span>${escape(record.sections[workspace].title)}</a>`).join('')}</nav><div class="sidebar-bottom"><div class="private-status">只读历史归档</div><span>${escape(record.closeDate)} · ${coverage}</span><a href="../">打开完整仪表盘 ↗</a></div></aside><div class="app-shell"><header class="topbar"><div class="breadcrumb">报告归档<span>/</span><strong id="workspace-title">${escape(record.sections.market.title)}</strong></div><span class="report-badge">${escape(record.closeDate)} · v${record.version}</span></header><main id="main"><header class="archive-heading"><div class="eyebrow">INVESTMENT BRIEF · IBKR</div><h1>${escape(record.title)}</h1><p class="archive-meta">${record.frequency === 'weekly' ? '周报' : '日报'} · ${escape(record.periodStart)} — ${escape(record.periodEnd)} · ${coverage}<br>报告日 ${escape(record.reportDate)} · 收盘日 ${escape(record.closeDate)} · 截止 ${escape(record.cutoff)} · 来源取得 ${escape(record.capturedAt)}</p>${overview}</header><section class="panel archive-summary"><div class="panel-top"><h2>决策摘要与数据状态</h2></div><div class="report-body">${record.summaryBlocks ? renderBlocks(record.summaryBlocks) : record.decisionSummary ? `<p>${escape(record.decisionSummary)}</p>` : ''}${record.sourceNote ? `<p>${escape(record.sourceNote)}</p>` : ''}<p id="archive-interactive-note" class="archive-static-nav">全部正文已保存在本页；可通过七栏目目录与浏览器查找阅读。</p></div></section>${sections}${appendix}<section class="panel archive-sources" id="coverage-sources"><div class="panel-top"><h2>覆盖与来源</h2></div><div class="report-body"><p>${coverage}。栏目齐全不等于所有研究或数据齐全；以下缺口保持原状。</p><ul>${record.coverage.missing.map(item => `<li>${escape(item)}</li>`).join('')}</ul>${weeklyCoverage}<ul>${sources}</ul></div></section><footer class="archive-footer">只读研究 · 没有交易执行 · 图表仅使用本报告提供的数据，缺失不填零。</footer></main></div><script type="application/json" id="archive-record">${payload}</script><script type="module">${ARCHIVE_RUNTIME}</script></body></html>\n`;
 }
 
 function samePeriod(record, candidate) {
@@ -436,7 +522,7 @@ export async function prepareReport({ root, input, bundle, check = false, now = 
   if (!Number.isSafeInteger(version)) fail('revision number exceeds the supported range');
   const previous = [...candidates].sort((a, b) => existingVersion(b) - existingVersion(a)).at(0);
   const record = {
-    ...bundle.record, id: recordId, version,
+    ...bundle.record, template: { id: REPORT_TEMPLATE_ID }, id: recordId, version,
     date: archiveDate, frequency: type, format: 'narrative', kind: type === 'weekly' ? 'weekly-report' : 'daily-report',
     sourceCapturedAt: bundle.record.capturedAt,
     ...(type === 'weekly' ? { weekEnd: bundle.record.periodEnd, tradingDates: [...bundle.record.coverage.tradingDays], tradingDatesVerified: bundle.record.coverage.tradingDatesVerified !== false } : {}),
@@ -444,8 +530,9 @@ export async function prepareReport({ root, input, bundle, check = false, now = 
     originalReportPath: './' + archiveStem + '.html',
     pipeline: { schemaVersion: 1, contentSha256 }
   };
-  const html = bundle.archiveHtml ?? renderArchive(record);
-  validateArchiveHtml(html);
+  // Generated markup includes only our trusted runtime and chart renderer. Incoming
+  // HTML is forbidden above; record text/JSON is escaped before interpolation.
+  const html = renderArchive(record);
   const nextReports = { ...base.value, generatedAt: new Date(now).toISOString(), records: [...base.value.records, record] };
   const planned = new Map([[archiveStem + '.html', Buffer.from(html)], [archiveStem + '.json', jsonBytes(record)]]);
   for (const name of ['data', 'market']) if (Object.hasOwn(bundle, name)) {
