@@ -24,8 +24,8 @@ export function periodRows(data, key) {
 
 export function benchmarkComparison(data, key) {
   const rows = periodRows(data,key);
-  const maps = Object.fromEntries(Object.entries(data.benchmarks).map(([symbol,b]) => [symbol,new Map(b.data.map(r=>[r.date,r.close]))]));
-  const common = rows.filter(r=>Object.values(maps).every(m=>Number.isFinite(m.get(r.date)) && m.get(r.date)>0));
+  const maps = Object.fromEntries(Object.entries(data.benchmarks??{}).filter(([,b])=>Array.isArray(b?.data)&&b.data.length).map(([symbol,b]) => [symbol,new Map(b.data.map(r=>[r.date,r.close]))]));
+  const common = Object.keys(maps).length ? rows.filter(r=>Object.values(maps).every(m=>Number.isFinite(m.get(r.date)) && m.get(r.date)>0)) : [];
   if (common.length < 2) return {ready:false, start:rows[0].date, end:rows.at(-1).date, latestAccountDate:rows.at(-1).date, series:{}, benchmarks:{}, accountReturn:null};
   const first=common[0], last=common.at(-1);
   const accountReturn=(1+last.ret)/(1+first.ret)-1;
@@ -41,10 +41,13 @@ export function benchmarkComparison(data, key) {
 export function positionStats(data) {
   const raw=data.positions.positions;
   const totalMarket=raw.reduce((s,p)=>s+p.market_value,0);
-  const totalCost=raw.reduce((s,p)=>s+p.average_price*p.position,0);
+  // Option quote units are not a verified contract deliverable or cost multiplier.
+  const costOf=p=>p.asset_class==='OPT' ? null : p.average_price*p.position;
+  const costs=raw.map(costOf), costComplete=costs.every(Number.isFinite);
+  const totalCost=costComplete ? costs.reduce((s,v)=>s+v,0) : null;
   const totalPnl=raw.reduce((s,p)=>s+p.unrealized_pnl,0);
-  const positions=raw.map(p=>({...p,symbol:p.contract_description,cost:p.average_price*p.position,ret:p.position>0 && p.average_price>0 ? p.unrealized_pnl/(p.average_price*p.position) : null,weight:totalMarket>0?p.market_value/totalMarket:0}));
-  return {positions,totalMarket,totalCost,totalPnl,holdingReturn:totalCost>0?totalPnl/totalCost:null,dailyPnl:raw.reduce((s,p)=>s+p.daily_pnl,0)};
+  const positions=raw.map(p=>{const cost=costOf(p);return {...p,symbol:p.contract_description,cost,ret:p.position>0&&Number.isFinite(cost)&&cost>0?p.unrealized_pnl/cost:null,weight:totalMarket>0?p.market_value/totalMarket:0};});
+  return {positions,totalMarket,totalCost,totalPnl,costComplete,holdingReturn:Number.isFinite(totalCost)&&totalCost>0?totalPnl/totalCost:null,dailyPnl:raw.reduce((s,p)=>s+p.daily_pnl,0)};
 }
 
 export function monthlyReturns(data) {

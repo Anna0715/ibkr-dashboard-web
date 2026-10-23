@@ -2,10 +2,10 @@ import { PERIODS, accountOf, periodRows, benchmarkComparison, positionStats, mon
 
 const byId = id => document.getElementById(id);
 const escapeHtml = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const usd = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+const usd = value => Number.isFinite(value) ? new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value) : '未取得';
 const number = value => new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
 const sign = value => value < -0.00000001 ? '−' : value > 0.00000001 ? '+' : '';
-const pct = value => value == null ? '—' : sign(value)+(Math.abs(value)*100).toFixed(2)+'%';
+const pct = value => !Number.isFinite(value) ? '未取得' : sign(value)+(Math.abs(value)*100).toFixed(2)+'%';
 const signedUsd = value => sign(value)+usd(Math.abs(value));
 const pctHtml = value => sign(value)+(Math.abs(value)*100).toFixed(2)+'<span>%</span>';
 const tone = value => value < -0.00000001 ? 'negative' : value > 0.00000001 ? 'positive' : '';
@@ -15,7 +15,18 @@ let data, stats, geometry, resizeObserver, unregister;
 const state = {period:'YTD',view:'return',benchmarks:{QQQ:true,SPY:true},sort:'market_value',ascending:false,selected:null};
 
 function getRows(){return periodRows(data,state.period);}
-function getComparison(){return benchmarkComparison(data,state.period);}
+function getComparison(){
+  const required=['QQQ','SPY'];
+  if(!required.every(symbol=>Array.isArray(data.benchmarks?.[symbol]?.data)&&data.benchmarks[symbol].data.length)){
+    const rows=getRows();
+    return {ready:false,start:rows[0].date,end:rows.at(-1).date,latestAccountDate:rows.at(-1).date,series:{},benchmarks:{},accountReturn:null};
+  }
+  return benchmarkComparison(data,state.period);
+}
+function benchmarkDateLabel(year=false){
+  const date=data.benchmarks?.QQQ?.data?.at(-1)?.date;
+  return typeof date==='string'&&/^\d{8}$/.test(date) ? dateLabel(date,year) : '未取得';
+}
 function rangeText(rows,year=true){return dateLabel(rows[0].date,year)+' — '+dateLabel(rows.at(-1).date,year);}
 function updateControls(){
   document.querySelectorAll('[data-period]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.period===state.period)));
@@ -47,7 +58,7 @@ function renderOverview(){
 function renderComparison(){
   const c=getComparison();
   if(!c.ready){
-    byId('benchmark-strip').innerHTML='<div class="benchmark-empty"><strong>单日基准数据尚未齐全</strong><span>账户已有 '+dateLabel(c.latestAccountDate)+' 记录；ETF 日线尚未覆盖这个日期，暂不计算比较差值。</span></div>';
+    byId('benchmark-strip').innerHTML='<div class="benchmark-empty"><strong>同口径ETF基准未取得</strong><span>账户已有 '+dateLabel(c.latestAccountDate)+' 记录；本快照未提供足够的同口径ETF数据，暂不计算比较差值。</span></div>';
     return;
   }
   let html='<div class="comparison-heading"><strong>同区间比较 · '+dateLabel(c.start)+' — '+dateLabel(c.end)+'</strong><span>ETF 价格收益率参考 · 非完整总回报</span></div><div class="comparison-grid">';
@@ -109,7 +120,7 @@ function renderChart(){
   document.querySelector('.account-line').style.backgroundColor=lineColor;
   if(state.view==='nav')byId('chart-note').textContent='净资产包含资金进出影响；此曲线不代表投资收益率。';
   else if(state.view==='drawdown')byId('chart-note').textContent='以所选区间 TWR 指数的前高为基准；已调整外部资金流影响。';
-  else byId('chart-note').textContent='账户更新至 '+dateLabel(last.date)+'；ETF 日线截至 '+dateLabel(data.benchmarks.QQQ.data.at(-1).date)+'。'+(c.ready&&!alignedChart?' 基准起点不同，比较结果见下方。':'');
+  else byId('chart-note').textContent='账户更新至 '+dateLabel(last.date)+'；ETF 日线截至 '+benchmarkDateLabel()+'。'+(c.ready&&!alignedChart?' 基准起点不同，比较结果见下方。':'');
   hideTooltip();
 }
 
@@ -145,13 +156,15 @@ function pointerTooltip(event){
 
 function renderAllocation(){
   const s=data.summary,base=s.net_liquidation;
-  const items=[{name:'股票',value:s.gross_position_value,color:'#a78bfa'},{name:'现金',value:s.total_cash_value,color:'#50d8a6'},{name:'股息应计余额',value:s.dividends,color:'#eecb78'}];
+  const items=[{name:'证券毛敞口',value:s.gross_position_value,color:'#a78bfa'},{name:'现金',value:s.total_cash_value,color:'#50d8a6'},{name:'股息应计余额',value:s.dividends,color:'#eecb78'}];
   const radius=73,circumference=2*Math.PI*radius;let offset=0;
-  let html='<title>账户摘要资产分布：股票 '+(items[0].value/base*100).toFixed(2)+'%，现金 '+(items[1].value/base*100).toFixed(2)+'%，应计余额 '+(items[2].value/base*100).toFixed(2)+'%</title><circle cx="95" cy="95" r="'+radius+'" fill="none" stroke="#2a2537" stroke-width="17"/>';
-  for(const item of items){
+  let html='<title>账户摘要资产分布：证券毛敞口 '+(items[0].value/base*100).toFixed(2)+'%，现金 '+(items[1].value/base*100).toFixed(2)+'%，应计余额 '+(items[2].value/base*100).toFixed(2)+'%</title><circle cx="95" cy="95" r="'+radius+'" fill="none" stroke="#2a2537" stroke-width="17"/>';
+  const canDrawAllocation=base>0&&items.every(item=>Number.isFinite(item.value)&&item.value>=0)&&Math.abs(items.reduce((sum,item)=>sum+item.value,0)-base)<base*.01;
+  for(const item of canDrawAllocation?items:[]){
     const length=item.value/base*circumference;
     html+='<circle cx="95" cy="95" r="'+radius+'" fill="none" stroke="'+item.color+'" stroke-width="17" stroke-dasharray="'+length+' '+(circumference-length)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90 95 95)"/>';offset+=length;
   }
+  if(!canDrawAllocation)html+='<text x="95" y="99" text-anchor="middle" fill="#9fabc3" font-size="12">融资敞口见明细</text>';
   byId('allocation-donut').innerHTML=html;
   byId('cash-weight').textContent=(s.total_cash_value/base*100).toFixed(2)+'%';
   byId('allocation-list').innerHTML=items.map(item=>'<div class="allocation-row"><span class="allocation-label"><i class="allocation-dot" style="background:'+item.color+'"></i>'+item.name+'</span><strong>'+usd(item.value)+'</strong><span class="allocation-value">'+(item.value/base*100).toFixed(2)+'%</span></div>').join('');
@@ -174,10 +187,10 @@ function renderPositions(){
 }
 function renderSources(){
   const a=accountOf(data),nav=a.periods.YTD.nav.at(-1),s=data.summary;
-  byId('source-comparison').innerHTML='<table class="source-table"><thead><tr><th>来源</th><th>净资产</th><th>股票市值</th><th>未实现盈亏</th></tr></thead><tbody><tr><td>账户摘要 / 余额</td><td>'+usd(s.net_liquidation)+'</td><td>'+usd(s.gross_position_value)+'</td><td>'+usd(data.balances.balances.find(b=>b.currency==='BASE').unrealized_pnl)+'</td></tr><tr><td>持仓明细合计</td><td>未提供</td><td>'+usd(stats.totalMarket)+'</td><td>'+usd(stats.totalPnl)+'</td></tr><tr><td>PortfolioAnalyst</td><td>'+usd(nav)+'</td><td>未提供</td><td>未提供</td></tr></tbody></table>';
+  byId('source-comparison').innerHTML='<table class="source-table"><thead><tr><th>来源</th><th>净资产</th><th>股票市值</th><th>未实现盈亏</th></tr></thead><tbody><tr><td>账户摘要 / 余额</td><td>'+usd(s.net_liquidation)+'</td><td>'+usd(s.gross_position_value)+'</td><td>'+usd(data.balances?.balances?.find(b=>b.currency==='BASE')?.unrealized_pnl)+'</td></tr><tr><td>持仓明细合计</td><td>未提供</td><td>'+usd(stats.totalMarket)+'</td><td>'+usd(stats.totalPnl)+'</td></tr><tr><td>PortfolioAnalyst</td><td>'+usd(nav)+'</td><td>未提供</td><td>未提供</td></tr></tbody></table>';
   const snapshot=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(data.capturedAt));
   byId('snapshot-time').textContent=snapshot+' JST';byId('snapshot-time').setAttribute('datetime',data.capturedAt);
-  byId('source-times').innerHTML='<dt>快照生成时间 · 日本时间</dt><dd>'+escapeHtml(snapshot)+' JST</dd><dt>绩效来源更新时间</dt><dd>'+escapeHtml(a.last_successful_update)+'（时区未提供）</dd><dt>账户绩效日期范围</dt><dd>'+dateLabel(a.start,true)+' — '+dateLabel(a.end,true)+'</dd><dt>ETF 最近收盘日期</dt><dd>'+dateLabel(data.benchmarks.QQQ.data.at(-1).date,true)+'</dd>';
+  byId('source-times').innerHTML='<dt>快照生成时间 · 日本时间</dt><dd>'+escapeHtml(snapshot)+' JST</dd><dt>绩效来源更新时间</dt><dd>'+escapeHtml(a.last_successful_update)+'（时区未提供）</dd><dt>账户绩效日期范围</dt><dd>'+dateLabel(a.start,true)+' — '+dateLabel(a.end,true)+'</dd><dt>ETF 最近收盘日期</dt><dd>'+benchmarkDateLabel(true)+'</dd>';
 }
 function renderPerformance(){updateControls();renderOverview();renderComparison();renderChart();}
 function setView(input){
